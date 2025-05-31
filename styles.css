@@ -397,19 +397,50 @@ footer.page-footer a:hover {
   border: 1px solid var(--error-color);
 }
 
-/* VAPI Button Fix - Ensure it stays visible and scrolls properly */
+/* ENHANCED VAPI Button Fix - Multiple approaches to ensure it stays visible */
 div[data-vapi] {
   position: fixed !important;
   bottom: 20px !important;
   right: 20px !important;
-  z-index: 9999 !important;
+  z-index: 99999 !important;
   pointer-events: auto !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
 }
 
-/* Ensure VAPI button is always above other content */
+/* Ensure VAPI button is always above other content with higher specificity */
 div[data-vapi] > * {
   position: relative !important;
-  z-index: 10000 !important;
+  z-index: 100000 !important;
+}
+
+/* Target VAPI button more specifically */
+div[data-vapi]:not([style*="display: none"]) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Fix for any VAPI wrapper elements */
+div[data-vapi] div,
+div[data-vapi] button,
+div[data-vapi] iframe {
+  position: relative !important;
+  z-index: 100001 !important;
+}
+
+/* Ensure no overflow issues hide the button */
+html, body {
+  overflow-x: visible !important;
+}
+
+/* Make sure no container cuts off the button */
+.container {
+  position: relative;
+  overflow: visible;
 }
 
 @media (max-width: 992px) {
@@ -445,5 +476,6 @@ div[data-vapi] > * {
   div[data-vapi] {
     bottom: 15px !important;
     right: 15px !important;
+    transform: none !important;
   }
 } 
