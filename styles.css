@@ -397,50 +397,95 @@ footer.page-footer a:hover {
   border: 1px solid var(--error-color);
 }
 
-/* ENHANCED VAPI Button Fix - Multiple approaches to ensure it stays visible */
+/* Custom VAPI Button - Works properly with scrolling */
+.custom-vapi-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: var(--primary-color);
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(122, 63, 253, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 280px;
+  animation: pulse 2s infinite;
+}
+
+.custom-vapi-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(122, 63, 253, 0.6);
+  background: var(--primary-darker);
+}
+
+.custom-vapi-button:active {
+  transform: translateY(0);
+}
+
+.vapi-button-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.vapi-button-content i {
+  font-size: 1.5rem;
+  color: white;
+  animation: bounce 2s infinite;
+}
+
+.vapi-button-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.vapi-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: white;
+}
+
+.vapi-subtitle {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Hide VAPI original button completely */
 div[data-vapi] {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  z-index: 99999 !important;
-  pointer-events: auto !important;
-  transform: none !important;
-  width: auto !important;
-  height: auto !important;
-  min-width: 50px !important;
-  min-height: 50px !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
-/* Ensure VAPI button is always above other content with higher specificity */
-div[data-vapi] > * {
-  position: relative !important;
-  z-index: 100000 !important;
+/* Animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 4px 20px rgba(122, 63, 253, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(122, 63, 253, 0.8);
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(122, 63, 253, 0.4);
+  }
 }
 
-/* Target VAPI button more specifically */
-div[data-vapi]:not([style*="display: none"]) {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Fix for any VAPI wrapper elements */
-div[data-vapi] div,
-div[data-vapi] button,
-div[data-vapi] iframe {
-  position: relative !important;
-  z-index: 100001 !important;
-}
-
-/* Ensure no overflow issues hide the button */
-html, body {
-  overflow-x: visible !important;
-}
-
-/* Make sure no container cuts off the button */
-.container {
-  position: relative;
-  overflow: visible;
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
 }
 
 @media (max-width: 992px) {
@@ -472,10 +517,23 @@ html, body {
     grid-template-columns: 1fr; 
   }
   
-  /* Mobile adjustments for VAPI button */
-  div[data-vapi] {
-    bottom: 15px !important;
-    right: 15px !important;
-    transform: none !important;
+  /* Mobile adjustments for custom VAPI button */
+  .custom-vapi-button {
+    bottom: 15px;
+    right: 15px;
+    padding: 12px 16px;
+    max-width: 240px;
+  }
+  
+  .vapi-title {
+    font-size: 0.9rem;
+  }
+  
+  .vapi-subtitle {
+    font-size: 0.75rem;
+  }
+  
+  .vapi-button-content i {
+    font-size: 1.3rem;
   }
 } 

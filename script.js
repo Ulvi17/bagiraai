@@ -107,8 +107,39 @@ const vapiSquadId = "f468f8d5-b6bd-44fd-b39e-358278e86404";
         });
       });
     }
+
+    // Setup custom VAPI button functionality
+    setupCustomVapiButton();
   };
 })(document, "script");
+
+// Custom VAPI Button Functionality
+function setupCustomVapiButton() {
+  const customVapiButton = document.getElementById('customVapiButton');
+  
+  if (customVapiButton && vapiInstance) {
+    customVapiButton.addEventListener('click', function() {
+      // Trigger VAPI conversation
+      if (vapiInstance.start) {
+        vapiInstance.start();
+      } else if (vapiInstance.call && vapiInstance.call.start) {
+        vapiInstance.call.start();
+      } else {
+        // Fallback: try to click the hidden VAPI button
+        const originalVapiButton = document.querySelector('div[data-vapi] button');
+        if (originalVapiButton) {
+          originalVapiButton.click();
+        }
+      }
+      
+      // Visual feedback
+      customVapiButton.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        customVapiButton.style.transform = '';
+      }, 100);
+    });
+  }
+}
 
 // Pilot Program Modal Functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -206,80 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-});
 
-// Enhanced VAPI button positioning fix with multiple checks
-function ensureVapiButtonPosition() {
-  const vapiButton = document.querySelector('div[data-vapi]');
-  if (vapiButton) {
-    // Force reset all positioning
-    vapiButton.style.cssText = `
-      position: fixed !important;
-      bottom: 20px !important;
-      right: 20px !important;
-      z-index: 99999 !important;
-      pointer-events: auto !important;
-      transform: none !important;
-      width: auto !important;
-      height: auto !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    `;
-    
-    // Also fix any child elements
-    const childElements = vapiButton.querySelectorAll('*');
-    childElements.forEach(child => {
-      child.style.position = 'relative';
-      child.style.zIndex = '100001';
-    });
-    
-    console.log('VAPI button positioning enforced');
-    return true;
+  // Setup custom VAPI button if VAPI is already loaded
+  if (vapiInstance) {
+    setupCustomVapiButton();
   }
-  return false;
-}
-
-// Multiple timing checks for VAPI button positioning
-window.addEventListener('load', function() {
-  // Initial checks with different delays
-  setTimeout(() => ensureVapiButtonPosition(), 1000);
-  setTimeout(() => ensureVapiButtonPosition(), 2000);
-  setTimeout(() => ensureVapiButtonPosition(), 3000);
-  setTimeout(() => ensureVapiButtonPosition(), 5000);
-});
-
-// Monitor for VAPI button changes and re-apply positioning
-const vapiObserver = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.type === 'childList') {
-      mutation.addedNodes.forEach(function(node) {
-        if (node.nodeType === 1 && (node.hasAttribute('data-vapi') || node.querySelector('[data-vapi]'))) {
-          setTimeout(() => ensureVapiButtonPosition(), 100);
-        }
-      });
-    }
-  });
-});
-
-// Start observing when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-  vapiObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-});
-
-// Ensure positioning on scroll (in case of any scroll-related issues)
-let scrollTimer;
-window.addEventListener('scroll', function() {
-  clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    ensureVapiButtonPosition();
-  }, 100);
-});
-
-// Ensure positioning on resize
-window.addEventListener('resize', function() {
-  setTimeout(() => ensureVapiButtonPosition(), 100);
 }); 
