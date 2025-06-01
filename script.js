@@ -78,25 +78,35 @@ const updateVapiButton = (title, subtitle) => {
 };
 
 // Handle VAPI button click
-const handleVapiClick = () => {
+const handleVapiClick = async () => {
+  console.log('VAPI button clicked');
+  
   if (!isVapiLoaded || !vapi) {
     console.log('VAPI not loaded yet');
     updateVapiButton('Загрузка...', 'Подождите');
+    
+    // Try to initialize again
+    initializeVAPI();
+    
     setTimeout(() => {
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
-    }, 2000);
+    }, 3000);
     return;
   }
 
   try {
     if (vapiStarted) {
       // Stop the call if it's already running
+      console.log('Stopping VAPI call');
       vapi.stop();
       vapiStarted = false;
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
     } else {
       // Start the call
-      vapi.start({
+      console.log('Starting VAPI call');
+      updateVapiButton('Соединение...', 'Подготовка звонка');
+      
+      await vapi.start({
         assistantId: "e139db91-3cba-456d-b27e-fa7b4cde0e07",
         assistantOverrides: {
           transcriber: {
@@ -111,11 +121,12 @@ const handleVapiClick = () => {
         },
       });
       vapiStarted = true;
-      updateVapiButton('Соединение...', 'Подготовка звонка');
+      console.log('VAPI call started successfully');
     }
   } catch (error) {
     console.error('Error with VAPI call:', error);
     updateVapiButton('Ошибка', 'Попробуйте позже');
+    vapiStarted = false;
     setTimeout(() => {
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
     }, 3000);
@@ -200,8 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
     yearEl.textContent = new Date().getFullYear();
   }
   
-  // Initialize VAPI
-  initializeVAPI();
+  // Wait for VAPI SDK to load, then initialize
+  const waitForVapi = () => {
+    if (typeof Vapi !== 'undefined') {
+      console.log('VAPI SDK found, initializing...');
+      initializeVAPI();
+    } else {
+      console.log('Waiting for VAPI SDK...');
+      setTimeout(waitForVapi, 500);
+    }
+  };
+  
+  waitForVapi();
   
   // Custom VAPI Button Event
   const customVapiButton = document.getElementById('customVapiButton');
@@ -213,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal Event Listeners
   const setupModalEvents = () => {
     // Demo modal triggers
-    const demoButtons = ['navDemoBtn', 'heroMainCTA', 'pricingCTA', 'finalCTA'];
+    const demoButtons = ['navDemoBtn', 'heroMainCTA', 'finalCTA'];
     demoButtons.forEach(id => {
       const btn = document.getElementById(id);
       if (btn) {
@@ -277,19 +298,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectors = [
       '[data-vapi]',
       '.vapi-widget',
-      '.vapi-button',
-      '.vapi-chat-button',
-      'div[id*="vapi"]',
-      'button[id*="vapi"]'
+      'div[class*="vapi"]',
+      'button[class*="vapi"]'
     ];
     
     selectors.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(el => {
         if (el.id !== 'customVapiButton') { // Don't hide our custom button
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.style.opacity = '0';
+          el.style.display = 'none !important';
+          el.style.visibility = 'hidden !important';
+          el.style.opacity = '0 !important';
+          el.style.pointerEvents = 'none !important';
         }
       });
     });
