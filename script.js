@@ -40,6 +40,31 @@ let vapiStarted = false;
       isVapiLoaded = true;
       console.log('VAPI SDK loaded successfully with squad');
       
+      // Listen for VAPI messages to trigger booking modal
+      if (vapiInstance && vapiInstance.on) {
+        vapiInstance.on('message', (message) => {
+          console.log('VAPI Message received:', message);
+          
+          // Check if assistant is asking for contact details
+          if (message.type === 'transcript' && message.transcript) {
+            const transcript = message.transcript.toLowerCase();
+            if (transcript.includes('phone') || transcript.includes('телефон') || 
+                transcript.includes('номер') || transcript.includes('контакт') ||
+                transcript.includes('email') || transcript.includes('почт')) {
+              console.log('Triggering booking modal from VAPI message');
+              setTimeout(() => showVapiBookingModal(), 1000);
+            }
+          }
+          
+          // Check for function calls
+          if (message.type === 'function-call' || 
+              (message.content && (message.content.includes('запись') || message.content.includes('booking')))) {
+            console.log('Triggering booking modal from function call');
+            setTimeout(() => showVapiBookingModal(), 500);
+          }
+        });
+      }
+      
       // Hide the original VAPI button immediately
       hideOriginalVapiButtons();
       
@@ -153,6 +178,8 @@ const handleVapiBookingForm = (event) => {
   const form = event.target;
   const phone = document.getElementById('vapiPhone').value;
   const email = document.getElementById('vapiEmail').value;
+  const submitButton = form.querySelector('button[type="submit"]');
+  const originalButtonText = submitButton.textContent;
   
   // Simple validation
   if (!phone || !email) {
@@ -160,12 +187,34 @@ const handleVapiBookingForm = (event) => {
     return;
   }
   
-  // Simulate booking confirmation
-  alert('Спасибо! Ваша запись подтверждена. Мы отправили детали на указанный email.');
+  // Disable button and show loading
+  submitButton.disabled = true;
+  submitButton.textContent = 'Отправляем...';
   
-  // Reset and close
-  form.reset();
-  closeModal('vapiBookingModal');
+  // Send to webhook
+  fetch("https://primary-production-3672.up.railway.app/webhook/bagira-submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, email })
+  })
+  .then(response => {
+    if (response.ok) {
+      alert("Спасибо! Мы скоро направим информацию по указанному номеру телефона или почте");
+    } else {
+      alert("Ошибка отправки. ❌ Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.");
+    }
+    closeModal('vapiBookingModal');
+    form.reset();
+  })
+  .catch(error => {
+    console.error("Ошибка отправки формы Bagira AI:", error);
+    alert("Что-то пошло не так. ❌\n" + (error.message || error));
+    closeModal('vapiBookingModal');
+  })
+  .finally(() => {
+    submitButton.disabled = false;
+    submitButton.textContent = originalButtonText;
+  });
 };
 
 // Initialize everything when DOM is loaded
@@ -308,8 +357,45 @@ const monitorVapiButtonStates = () => {
     } else {
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
     }
+    
+    // Monitor for text changes that might indicate booking request
+    const buttonText = originalButton.textContent || originalButton.innerText || '';
+    if (buttonText.toLowerCase().includes('phone') || 
+        buttonText.toLowerCase().includes('contact') ||
+        buttonText.toLowerCase().includes('телефон') ||
+        buttonText.toLowerCase().includes('номер')) {
+      console.log('Detected booking request from button text');
+      setTimeout(() => showVapiBookingModal(), 1000);
+    }
   }
 };
 
 // Monitor VAPI button states
-setInterval(monitorVapiButtonStates, 1000); 
+setInterval(monitorVapiButtonStates, 1000);
+
+// Additional monitoring for DOM changes that might indicate VAPI interaction
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'childList') {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent.toLowerCase();
+          if (text.includes('phone') || text.includes('телефон') || 
+              text.includes('номер') || text.includes('contact')) {
+            console.log('Detected contact request from DOM mutation');
+            setTimeout(() => showVapiBookingModal(), 1500);
+          }
+        }
+      });
+    }
+  });
+});
+
+// Start observing
+setTimeout(() => {
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+}, 2000); 

@@ -252,16 +252,18 @@ p {
 }
 
 .hero__trust {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   background-color: rgba(122, 63, 253, 0.1);
   border-radius: var(--radius-md);
   border-left: 4px solid var(--primary-color);
+  max-width: 400px;
 }
 
 .trust__text {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 500;
+  line-height: 1.4;
 }
 
 /* Video Container */
@@ -559,48 +561,58 @@ p {
 
 /* VAPI Button */
 .vapi-button {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 9999;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-  color: var(--text-white);
-  border-radius: 50px;
-  padding: 1rem 1.5rem;
-  cursor: pointer;
-  box-shadow: var(--shadow-xl);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  max-width: 280px;
-  animation: pulse 3s infinite;
+  position: fixed !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  z-index: 9999 !important;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+  color: var(--text-white) !important;
+  border-radius: 50px !important;
+  padding: 1rem 1.5rem !important;
+  cursor: pointer !important;
+  box-shadow: var(--shadow-xl) !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  max-width: 280px !important;
+  animation: pulse 3s infinite !important;
+  border: none !important;
+  font-family: var(--font-body) !important;
 }
 
 .vapi-button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4);
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4) !important;
 }
 
 .vapi-button__icon {
-  font-size: 1.5rem;
-  animation: bounce 2s infinite;
+  font-size: 1.5rem !important;
+  animation: bounce 2s infinite !important;
+  color: var(--text-white) !important;
 }
 
 .vapi-button__text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
+  display: flex !important;
+  flex-direction: column !important;
+  line-height: 1.2 !important;
+  color: var(--text-white) !important;
 }
 
 .vapi-button__title {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  color: var(--text-white) !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .vapi-button__subtitle {
-  font-size: 0.8rem;
-  opacity: 0.9;
+  font-size: 0.8rem !important;
+  opacity: 0.9 !important;
+  color: var(--text-white) !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* Hide original VAPI button */
