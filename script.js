@@ -39,48 +39,57 @@ function initializeVoiceVapiInstance() {
   }
 
   try {
-    console.log('Initializing VAPI Voice Instance...');
+    console.log('Attempting to run VAPI Voice Instance...');
     vapiVoiceInstance = window.vapiSDK.run({
       apiKey: apiKey,
       squad: vapiSquadId,
       config: {
-        position: "bottom-right", // This is important for the SDK to know where to place its button
+        position: "bottom-right", 
         idle: {
           color: "#7A3FFD", type: "pill",
           title: "Поговорить с Bagira AI", subtitle: "Голосовой юр. помощник",
           icon: "https://unpkg.com/lucide-static@0.321.0/icons/mic.svg"
-        },
-        // chat: { enabled: false } // Not strictly needed if chat is not in top-level config
+        }
       }
     });
-    console.log('VAPI Voice Instance command issued. Instance:', vapiVoiceInstance);
+    console.log('VAPI Voice Instance run command issued. Waiting for instance to be fully ready for event listeners...');
 
-    if (vapiVoiceInstance && vapiVoiceInstance.on) {
-      vapiVoiceInstance.on("message", handleVoiceInstanceMessage);
-      vapiVoiceInstance.on('call-started', () => {
-        console.log("Event: call-started");
-        updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
-      });
-      vapiVoiceInstance.on('call-ended', () => {
-        console.log("Event: call-ended");
-        updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', 'idle');
-      });
-      vapiVoiceInstance.on('error', (e) => {
-        console.error('VAPI Voice Instance Error:', e);
-        updateVapiButton('Ошибка звонка', 'Попробуйте снова', 'idle'); // Revert to idle on error
-      });
-      console.log('VAPI Voice Instance event listeners attached.');
-    } else {
-      console.warn('Voice instance or .on method not available immediately post-run. This might be an issue.');
-      updateVapiButton('Ошибка инст.', 'Проверьте консоль', 'idle');
-    }
+    // The vapiVoiceInstance object might be returned before it's fully interactive for attaching .on listeners
+    // or before it has internally processed the config to be ready for a call.
+    // We will attempt to attach listeners with a small delay if direct attachment fails or seems problematic.
 
-    // Attempt to find and hide the SDK's button after a short delay
-    console.log("Scheduling search for SDK voice button in 2 seconds...");
-    setTimeout(findAndStoreVoiceSdkButton, 2000);
+    const setupEventListeners = (instance) => {
+        if (instance && typeof instance.on === 'function') {
+            console.log('Attaching VAPI Voice Instance event listeners...');
+            instance.on("message", handleVoiceInstanceMessage);
+            instance.on('call-started', () => {
+                console.log('>>> VAPI Event: call-started received!');
+                updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+            });
+            instance.on('call-ended', () => {
+                console.log('>>> VAPI Event: call-ended received!');
+                updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', 'idle');
+            });
+            instance.on('error', (e) => {
+                console.error('>>> VAPI Voice Instance Error Event:', e);
+                updateVapiButton('Ошибка звонка', 'Попробуйте снова', 'idle');
+            });
+            console.log('VAPI Voice Instance event listeners successfully attached.');
+            // Attempt to find and hide the SDK's button now that listeners are hopefully attached to a ready instance
+            console.log("Scheduling search for SDK voice button in 1 second (after listener setup)...");
+            setTimeout(findAndStoreVoiceSdkButton, 1000); 
+        } else {
+            console.warn('Voice instance is not available or .on method is not a function AT THE TIME OF LISTENER SETUP. Retrying listener setup shortly...');
+            // Fallback: Retry attaching listeners after a short delay if instance wasn't ready.
+            setTimeout(() => setupEventListeners(vapiVoiceInstance), 500); 
+        }
+    };
+
+    // Initial attempt to set up listeners
+    setupEventListeners(vapiVoiceInstance);
 
   } catch (error) {
-    console.error('Failed to initialize VAPI Voice SDK:', error);
+    console.error('Failed to initialize VAPI Voice SDK (error during .run() or initial setup):', error);
     updateVapiButton('Ошибка Init', 'См. консоль', 'idle');
   }
 }
@@ -198,26 +207,33 @@ const handleVapiCustomButtonClick = async () => {
   console.log('Custom VAPI Voice button clicked.');
 
   if (!vapiSDKLoaded) {
-    console.warn('VAPI SDK script not loaded yet. Cannot trigger voice action.');
+    console.warn('VAPI SDK script not loaded yet.');
     updateVapiButton('SDK Загрузка...', 'Подождите', 'idle');
     return;
   }
   if (!vapiVoiceInstance) {
-    console.error('VAPI Voice instance is not available. Cannot start call.');
-    updateVapiButton('Ошибка Инст.', 'Обновите стр.', 'idle');
+    console.error('VAPI Voice instance is not available (null). Cannot start call. Was initialization successful?');
+    updateVapiButton('Ошибка Инст.', 'Недоступен', 'idle');
     return;
   }
 
+  // Set to connecting state immediately
   updateVapiButton('Соединение...', 'Подключение к ассистенту', 'connecting');
 
   if (sdkVoiceButtonElement) {
     console.log('Attempting to click stored SDK Voice button:', sdkVoiceButtonElement);
     sdkVoiceButtonElement.click(); 
-    // State changes to 'active' should be handled by the 'call-started' event listener.
+    // The 'call-started' event should handle the transition to 'active' state.
+    // If it gets stuck on "connecting", it means 'call-started' was not received or handled.
   } else {
-    console.error('Stored SDK Voice button reference is MISSING. Cannot trigger call. Was it found after initialization? Check console logs from findAndStoreVoiceSdkButton.');
+    console.error('Stored SDK Voice button reference is MISSING. Cannot trigger call programmatically via SDK button. This usually means findAndStoreVoiceSdkButton failed.');
+    // As a last resort, if the SDK button wasn't found, inform the user. 
+    // Attempting a direct vapiVoiceInstance.start() is unreliable based on previous errors.
     updateVapiButton('Ошибка SDK Кнопки', 'Не найдена', 'idle'); 
-    // No longer attempting vapiVoiceInstance.start() as it requires squad/assistant ID.
+    console.log("Further check: Is vapiVoiceInstance.start a function?", typeof vapiVoiceInstance.start);
+    // You could try instance.start() here IF AND ONLY IF VAPI docs confirm it works reliably this way with your specific SDK version/config
+    // and if the 'Assistant or Squad must be provided' error is resolved for direct .start() calls.
+    // For now, not calling it to avoid known errors.
   }
 };
 
