@@ -383,8 +383,8 @@ const handleVapiBookingForm = (event) => { event.preventDefault(); console.log("
   }).finally(() => { submitButton.disabled = false; submitButton.textContent = originalButtonText; });}; 
 
 // VAPI Text Chat Functionality using Chat API
-const CHAT_API_KEY = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
-const CHAT_ASSISTANT_ID = "f60d3d06-8dd2-4e0e-b0e5-ed28384203a2";
+const CHAT_API_KEY = "cc358c78-cc72-4f79-871b-a6e5085990bc";
+const CHAT_ASSISTANT_ID = "183660fe-2888-43c5-91c3-ef29e003035c";
 const FALLBACK_ASSISTANT_ID = "f468f8d5-b6bd-44fd-b39e-358278e86404"; // Fallback to squad ID
 let previousChatId = null;
 
