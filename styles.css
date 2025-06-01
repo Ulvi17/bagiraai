@@ -1,29 +1,32 @@
 /* CSS Variables */
 :root {
-  --primary-color: #7C3AED; /* Violet */
-  --primary-dark: #6d28d9; /* Darker Violet */
+  --primary-color: #7C3AED; /* Violet - Main Accent */
+  --primary-dark: #6d28d9;  /* Darker Violet */
   --primary-light: #8b5cf6; /* Lighter Violet */
-  --secondary-color: #10B981; /* Emerald - was for chat, can be general accent */
-  --accent-color: #f59e0b; /* Orange - kept for now, can be replaced if not used */
-  --success-color: #10B981; /* Emerald for success messages */
-  --error-color: #EF4444; /* Red */
   
-  --text-primary: #1C1C1E; /* Dark Gray/Black */
-  --text-secondary: #6B7280; /* Gray */
-  --text-light: #9ca3af; /* Lighter Gray - adjust if needed for contrast on dark bg */
+  --secondary-color: #10B981; /* Emerald - For success, positive accents */
+  /* --accent-color: #f59e0b; -- Orange, removing if not actively used to simplify */
+  
+  --success-color: var(--secondary-color); /* Use Emerald for success */
+  --error-color: #EF4444;   /* Red */
+  
+  --text-primary: #1C1C1E;     /* Near Black */
+  --text-secondary: #6B7280;   /* Medium Gray */
+  --text-light: #A0AEC0;      /* Lighter Gray (for text on dark backgrounds) - adjusted for better contrast */
   --text-white: #ffffff;
   
-  --bg-primary: #F9FAFB; /* Light Gray */
-  --bg-secondary: #F3F4F6; /* Slightly darker than bg-primary, for section differentiation */
-  --bg-accent: #E5E7EB; /* Even darker gray, or can be a complementary color */
-  --bg-dark: #111827; /* Dark Gray/Black for Footer */
+  --bg-primary: #F9FAFB;       /* Very Light Gray - Main page background */
+  --bg-secondary: #F3F4F6;     /* Light Gray - Alternate section background */
+  --bg-accent: #E5E7EB;       /* Medium Light Gray - For cards, borders, or subtle accents */
+  --bg-dark: #111827;         /* Very Dark Gray/Near Black - Footer background */
   
-  --border-light: #e5e7eb;
-  --border-medium: #d1d5db;
+  --border-light: var(--bg-accent); /* Use bg-accent for borders */
+  --border-medium: #D1D5DB;        /* Kept for slightly stronger borders if needed */
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(28, 28, 30, 0.07); /* Adjusted shadow color for new text color */
+  --shadow-lg: 0 10px 15px -3px rgba(28, 28, 30, 0.07);
+  --shadow-xl: 0 20px 25px -5px rgba(28, 28, 30, 0.07);
   
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -52,7 +55,7 @@ body {
   font-family: var(--font-body);
   line-height: 1.6;
   color: var(--text-primary);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-primary); /* Applied main background */
   overflow-x: hidden;
 }
 
@@ -123,8 +126,7 @@ p {
 .btn--primary:hover {
   background-color: var(--primary-dark);
   border-color: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  /* transform and box-shadow inherited or can be re-specified */
 }
 
 .btn--secondary {
@@ -161,13 +163,12 @@ p {
 
 /* Header */
 .header {
-  background-color: var(--bg-primary);
+  background-color: color-mix(in srgb, var(--bg-primary) 95%, transparent); /* Ensure this uses new bg-primary */
   border-bottom: 1px solid var(--border-light);
   position: sticky;
   top: 0;
   z-index: 1000;
   backdrop-filter: blur(10px);
-  background-color: color-mix(in srgb, var(--bg-primary) 95%, transparent);
 }
 
 .nav {
@@ -196,13 +197,13 @@ p {
 }
 
 .nav__title {
-  /* The color is inherited from nav__brand which uses --text-primary */
-  /* Potentially make it slightly lighter or a different weight if needed */
+  color: var(--text-primary);
 }
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  /* background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); */ /* Optional gradient */
+  background-color: var(--bg-primary); /* Or solid color */
   padding: 4rem 0;
   min-height: 90vh;
   display: flex;
@@ -262,7 +263,7 @@ p {
 
 .hero__trust {
   padding: 0.75rem 1rem;
-  background-color: rgba(122, 63, 253, 0.1);
+  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
   border-radius: var(--radius-md);
   border-left: 4px solid var(--primary-color);
   max-width: 400px;
@@ -936,13 +937,13 @@ p {
 }
 
 .form__message.success {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
   color: var(--success-color);
   border: 1px solid var(--success-color);
 }
 
 .form__message.error {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: color-mix(in srgb, var(--error-color) 10%, transparent);
   color: var(--error-color);
   border: 1px solid var(--error-color);
 }
