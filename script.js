@@ -27,14 +27,14 @@ var sdkVoiceButtonElement = null; // Reference to the SDK's voice button
   };
   g.onerror = function() {
     console.error('CRITICAL: Failed to load VAPI SDK script from CDN. Check internet connection.');
-    updateVapiButton('Ошибка SDK', 'Нет связи', false);
+    updateVapiButton('Ошибка SDK', 'Нет связи', 'idle');
   };
 })(document, "script");
 
 function initializeVoiceVapiInstance() {
   if (!vapiSDKLoaded || !window.vapiSDK) {
     console.error('VAPI SDK not available on window. Voice instance cannot be initialized.');
-    updateVapiButton('Ошибка SDK', 'Не загружен', false);
+    updateVapiButton('Ошибка SDK', 'Не загружен', 'idle');
     return;
   }
 
@@ -56,17 +56,23 @@ function initializeVoiceVapiInstance() {
     console.log('VAPI Voice Instance command issued. Instance:', vapiVoiceInstance);
 
     if (vapiVoiceInstance && vapiVoiceInstance.on) {
-      vapiVoiceInstance.on("message", handleVoiceInstanceMessage); // Using your specified structure
-      vapiVoiceInstance.on('call-started', () => updateVapiButton('Идет звонок...', 'Нажмите для завершения', false));
-      vapiVoiceInstance.on('call-ended', () => updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false));
+      vapiVoiceInstance.on("message", handleVoiceInstanceMessage);
+      vapiVoiceInstance.on('call-started', () => {
+        console.log("Event: call-started");
+        updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+      });
+      vapiVoiceInstance.on('call-ended', () => {
+        console.log("Event: call-ended");
+        updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', 'idle');
+      });
       vapiVoiceInstance.on('error', (e) => {
         console.error('VAPI Voice Instance Error:', e);
-        updateVapiButton('Ошибка звонка', 'Попробуйте позже', false);
+        updateVapiButton('Ошибка звонка', 'Попробуйте снова', 'idle'); // Revert to idle on error
       });
       console.log('VAPI Voice Instance event listeners attached.');
     } else {
       console.warn('Voice instance or .on method not available immediately post-run. This might be an issue.');
-      updateVapiButton('Ошибка инст.', 'Проверьте консоль', false);
+      updateVapiButton('Ошибка инст.', 'Проверьте консоль', 'idle');
     }
 
     // Attempt to find and hide the SDK's button after a short delay
@@ -75,7 +81,7 @@ function initializeVoiceVapiInstance() {
 
   } catch (error) {
     console.error('Failed to initialize VAPI Voice SDK:', error);
-    updateVapiButton('Ошибка Init', 'См. консоль', false);
+    updateVapiButton('Ошибка Init', 'См. консоль', 'idle');
   }
 }
 
@@ -146,12 +152,14 @@ function handleVoiceInstanceMessage(message) {
   }
 }
 
-const updateVapiButton = (title, subtitle, isChat = false) => { // isChat param is no longer used but kept for signature consistency if called elsewhere
-  const buttonId = 'customVapiButton'; // Hardcoded to voice button
-  const button = document.getElementById(buttonId);
+const updateVapiButton = (title, subtitle, state = 'idle') => {
+  const button = document.getElementById('customVapiButton');
   if (!button) return;
+
   const titleEl = button.querySelector('.vapi-button__title');
   const subtitleEl = button.querySelector('.vapi-button__subtitle');
+  const iconEl = button.querySelector('.vapi-button__icon'); // Assuming icon is <i class="fas fa-microphone vapi-button__icon"></i>
+
   if (titleEl) {
     titleEl.textContent = title;
     titleEl.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
@@ -160,36 +168,68 @@ const updateVapiButton = (title, subtitle, isChat = false) => { // isChat param 
     subtitleEl.textContent = subtitle;
     subtitleEl.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
   }
+
+  // Manage states
+  button.classList.remove('vapi-button--active', 'vapi-button--connecting'); // Remove all state classes first
+  if (iconEl) iconEl.className = 'fas fa-microphone vapi-button__icon'; // Reset icon
+
+  switch (state) {
+    case 'connecting':
+      // You could add a specific class for connecting if more style changes are needed
+      // button.classList.add('vapi-button--connecting');
+      if (iconEl) iconEl.className = 'fas fa-spinner fa-spin vapi-button__icon'; // Change to spinner icon
+      console.log("Button state: Connecting");
+      break;
+    case 'active':
+      button.classList.add('vapi-button--active');
+      if (iconEl) iconEl.className = 'fas fa-phone-slash vapi-button__icon'; // Change to hang-up icon
+      console.log("Button state: Active");
+      break;
+    case 'idle':
+    default:
+      // Default purple gradient, pulse animation, and mic icon are handled by base .vapi-button class
+      console.log("Button state: Idle");
+      break;
+  }
 };
 
-const handleVapiCustomButtonClick = async () => { // Removed isChat parameter
+const handleVapiCustomButtonClick = async () => {
   console.log('Custom VAPI Voice button clicked.');
 
   if (!vapiSDKLoaded) {
     console.warn('VAPI SDK script not loaded yet. Cannot trigger voice action.');
-    updateVapiButton('SDK Загрузка...', 'Подождите');
+    updateVapiButton('SDK Загрузка...', 'Подождите', 'idle'); // Or a specific 'error' state if desired
     return;
   }
   if (!vapiVoiceInstance) {
     console.error('VAPI Voice instance is not available. Cannot start call.');
-    updateVapiButton('Ошибка Инст.', 'Обновите стр.');
+    updateVapiButton('Ошибка Инст.', 'Обновите стр.', 'idle');
     return;
   }
+
+  // Immediately update to connecting state before attempting action
+  updateVapiButton('Соединение...', 'Подключение к ассистенту', 'connecting');
 
   if (sdkVoiceButtonElement) {
     console.log('Attempting to click stored SDK Voice button:', sdkVoiceButtonElement);
     sdkVoiceButtonElement.click(); 
-    // VAPI events ('call-started') should update the button text now
+    // Text update to active/idle will be handled by 'call-started' and 'call-ended' events
   } else {
     console.error('Stored SDK Voice button reference is MISSING. Cannot trigger call. Was it found after initialization?');
-    updateVapiButton('Ошибка SDK Кнопки', 'Не найдена');
-     // Fallback: Try to use instance.start() if available and button not found (less common for script tag version)
-     if (typeof vapiVoiceInstance.start === 'function') {
+    // Fallback: Try to use instance.start() if available and button not found
+    if (vapiVoiceInstance && typeof vapiVoiceInstance.start === 'function') {
         console.log('SDK button not found, attempting vapiVoiceInstance.start()');
-        vapiVoiceInstance.start();
-     } else {
-        console.warn('vapiVoiceInstance.start() is not a function.');
-     }
+        try {
+            await vapiVoiceInstance.start(); // Assuming start might be async or trigger events
+            // If .start() doesn't trigger 'call-started' immediately, the 'connecting' state will persist until it does.
+        } catch (startError) {
+            console.error("Error calling vapiVoiceInstance.start():", startError);
+            updateVapiButton('Ошибка запуска', 'Попробуйте снова', 'idle'); // Revert to idle
+        }
+    } else {
+        console.warn('sdkVoiceButtonElement is missing AND vapiVoiceInstance.start() is not a function or instance is missing.');
+        updateVapiButton('Ошибка SDK', 'Не удалось запустить', 'idle'); // Revert to idle
+    }
   }
 };
 

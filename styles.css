@@ -586,6 +586,16 @@ p {
   box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4) !important;
 }
 
+/* Active call state for VAPI Button */
+.vapi-button--active {
+  background: linear-gradient(135deg, var(--error-color) 0%, #c00000) !important; /* Red gradient */
+  animation: none !important; /* Stop pulsing when active */
+}
+
+.vapi-button--active:hover {
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5) !important; /* Red shadow on hover */
+}
+
 .vapi-button__content {
   display: flex !important;
   align-items: center !important;
