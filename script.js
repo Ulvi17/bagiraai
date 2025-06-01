@@ -63,8 +63,12 @@ function initializeVoiceVapiInstance() {
             console.log('Attaching VAPI Voice Instance event listeners...');
             instance.on("message", handleVoiceInstanceMessage);
             instance.on('call-started', () => {
-                console.log('>>> VAPI Event: call-started received!');
-                updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+                console.log('>>> VAPI Event: call-started received! (Attempting to set active state)');
+                // Check current button state to avoid overriding if already set by message handler
+                const button = document.getElementById('customVapiButton');
+                if (button && !button.classList.contains('vapi-button--active')) {
+                    updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+                }
             });
             instance.on('call-ended', () => {
                 console.log('>>> VAPI Event: call-ended received!');
@@ -122,9 +126,28 @@ function findAndStoreVoiceSdkButton() {
   }
 }
 
-// Adapted from your provided message listener structure
+// Revised handleVoiceInstanceMessage
 function handleVoiceInstanceMessage(message) {
   console.log('VAPI Voice Message received:', message);
+  const button = document.getElementById('customVapiButton');
+  const isConnecting = button && button.querySelector('.fa-spinner'); // Check if spinner icon is present
+
+  // Transition to active state based on early call signals if currently "connecting"
+  if (isConnecting) {
+    if (message.type === 'status-update' && message.status === 'in-progress') {
+      console.log('>>> Call In-Progress detected from status-update. Setting button to active.');
+      updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+      return; // Return to prevent other logic if we've just set it to active
+    }
+    if ((message.type === 'speech-update' || message.type === 'transcript') && message.role === 'assistant') {
+      // Only act on the *first* sign of assistant speech/transcript if connecting
+      console.log('>>> Assistant activity detected while connecting. Setting button to active.');
+      updateVapiButton('Завершить звонок', 'Нажмите чтобы повесить трубку', 'active');
+      return; 
+    }
+  }
+
+  // Existing logic for booking modal based on transcripts
   if (
     message.type === "transcript" &&
     message.role === "assistant" &&
@@ -132,26 +155,13 @@ function handleVoiceInstanceMessage(message) {
     message.transcript
   ) {
     const assistantUtterance = message.transcript.toLowerCase().trim();
-    // User mentioned: "please type your phone number below to confirm."
-    // Broader check based on previous implementation that worked:
     const triggerPhrases = ['phone', 'телефон', 'номер', 'контакт', 'email', 'почт', 'type your phone number'];
     
     if (triggerPhrases.some(phrase => assistantUtterance.includes(phrase))) {
       console.log(`Triggering booking modal from VAPI voice message: "${assistantUtterance}"`);
-      // Assuming showVapiBookingModal() is defined and handles opening your modal
-      // If your modal elements were bagiraModal, phoneClientInput, bagiraModalHeader:
-      // const bagiraModal = document.getElementById('vapiBookingModal'); // Or your actual modal ID
-      // const phoneClientInput = document.getElementById('vapiPhone'); // Or your actual phone input ID
-      // const bagiraModalHeader = bagiraModal.querySelector('.modal__title'); // Or your actual header element
-      // if (bagiraModal.style.display !== "flex") {
-      //   bagiraModal.style.display = "flex"; // This might be better handled by openModal('vapiBookingModal')
-      //   if(phoneClientInput) phoneClientInput.focus();
-      //   if(bagiraModalHeader) bagiraModalHeader.textContent = "Пожалуйста, введите ваш телефон и email для подтверждения записи.";
-      // }
-      showVapiBookingModal(); // Prefer using the existing modal functions
+      showVapiBookingModal();
       const vapiBookingModalTitle = document.querySelector('#vapiBookingModal .modal__title');
-      if(vapiBookingModalTitle) vapiBookingModalTitle.textContent = "Подтвердите запись на консультацию"; // Reset or set title as needed
-
+      if(vapiBookingModalTitle) vapiBookingModalTitle.textContent = "Подтвердите запись на консультацию";
     }
   }
   // Handle function calls if your assistant uses them for booking
