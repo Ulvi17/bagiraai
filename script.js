@@ -288,9 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Custom Chat Button (customChatButton) not found!');
   }
   
-  setupModalEvents(); 
-  setupChatModalEvents(); // Add chat modal setup
+  // Initialize chat modal
+  setTimeout(() => {
+    initializeChatModal();
+    console.log('Chat modal initialized');
+  }, 100);
   
+  setupModalEvents(); 
   const demoForm = document.getElementById('demoForm');
   if (demoForm) demoForm.addEventListener('submit', handleDemoForm);
   const vapiBookingForm = document.getElementById('vapiBookingForm');
@@ -322,8 +326,21 @@ const setupModalEvents = () => {
     if (closeDemoBtn) closeDemoBtn.addEventListener('click', () => closeModal('demoModal'));
     const closeVapiBtn = document.getElementById('closeVapiModal');
     if (closeVapiBtn) closeVapiBtn.addEventListener('click', () => closeModal('vapiBookingModal'));
-    document.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) closeModal(e.target.id); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal('demoModal'); closeModal('vapiBookingModal'); } });
+    const closeChatBtn = document.getElementById('closeChatModal');
+    if (closeChatBtn) closeChatBtn.addEventListener('click', () => closeModal('textChatModal'));
+    document.addEventListener('click', (e) => { 
+      if (e.target.classList.contains('modal')) {
+        const modalId = e.target.id;
+        closeModal(modalId); 
+      }
+    });
+    document.addEventListener('keydown', (e) => { 
+      if (e.key === 'Escape') { 
+        closeModal('demoModal'); 
+        closeModal('vapiBookingModal'); 
+        closeModal('textChatModal');
+      } 
+    });
     console.log("Modal event listeners set up.");
 };
 const openModal = (modalId) => { 
@@ -365,263 +382,184 @@ const handleVapiBookingForm = (event) => { event.preventDefault(); console.log("
     console.error("Ошибка отправки формы Bagira AI:", error); alert("Что-то пошло не так. ❌\n" + (error.message || error)); closeModal('vapiBookingModal');
   }).finally(() => { submitButton.disabled = false; submitButton.textContent = originalButtonText; });}; 
 
-// VAPI Text Chat Functionality - Direct API Implementation
-const API_KEY = '58f89212-0e94-4123-8f9e-3bc0dde56fe0';
-const ASSISTANT_ID = 'f60d3d06-8dd2-4e0e-b0e5-ed28384203a2';
+// VAPI Text Chat Functionality using Chat API
+const CHAT_API_KEY = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
+const CHAT_ASSISTANT_ID = "f60d3d06-8dd2-4e0e-b0e5-ed28384203a2";
+let previousChatId = null;
 
-let currentChatId = null;
-let isTyping = false;
+// Chat modal elements
+let chatMessagesDiv = null;
+let chatInputField = null;
+let sendChatButton = null;
 
-/**
- * Sends a message to the Bagira AI assistant using VAPI REST API
- * @param {string} message - The user's input message
- * @param {string} [previousChatId] - Optional ID to maintain conversation context
- * @returns {Promise<{chatId: string, response: string}>}
- */
-async function sendChatMessage(message, previousChatId) {
-  const response = await fetch('https://api.vapi.ai/chat', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      assistantId: ASSISTANT_ID,
-      input: message,
-      ...(previousChatId && { previousChatId })
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`);
-  }
-
-  const chat = await response.json();
-  return {
-    chatId: chat.id,
-    response: chat.output[0].content
-  };
-}
-
-// Chat UI Functions
-function openChatModal() {
-  const modal = document.getElementById('chatModal');
-  const chatInput = document.getElementById('chatInput');
-  const sendButton = document.getElementById('sendMessage');
-  const chatStatus = document.getElementById('chatStatus');
-  const welcomeTime = document.getElementById('welcomeTime');
+// Initialize chat modal elements
+function initializeChatModal() {
+  chatMessagesDiv = document.getElementById('chatMessages');
+  chatInputField = document.getElementById('chatMessageInput');
+  sendChatButton = document.getElementById('sendChatMessage');
   
-  if (modal) {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    // Set welcome message time
-    if (welcomeTime) {
-      welcomeTime.textContent = new Date().toLocaleTimeString('ru-RU', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    }
-    
-    // Enable chat after a short delay
-    setTimeout(() => {
-      if (chatInput) {
-        chatInput.disabled = false;
-        chatInput.placeholder = 'Напишите ваш вопрос...';
-        chatInput.focus();
+  if (chatInputField) {
+    // Add Enter key support
+    chatInputField.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
       }
-      if (sendButton) {
-        sendButton.disabled = false;
-      }
-      if (chatStatus) {
-        chatStatus.textContent = 'Готов к общению';
-        chatStatus.style.color = 'var(--success-color)';
-      }
-    }, 1000);
-    
-    console.log('Chat modal opened');
+    });
+  }
+  
+  if (sendChatButton) {
+    sendChatButton.addEventListener('click', sendChatMessage);
   }
 }
 
-function closeChatModal() {
-  const modal = document.getElementById('chatModal');
-  if (modal) {
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-    console.log('Chat modal closed');
-  }
-}
-
-function addMessage(text, isUser = false, showTime = true) {
-  const chatMessages = document.getElementById('chatMessages');
-  if (!chatMessages) return;
-
+// Append message to chat
+function appendChatMessage(role, content) {
+  if (!chatMessagesDiv) return;
+  
   const messageDiv = document.createElement('div');
-  messageDiv.className = `message ${isUser ? 'message--user' : 'message--assistant'}`;
+  messageDiv.className = `chat-message ${role}`;
   
-  const currentTime = new Date().toLocaleTimeString('ru-RU', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-
-  messageDiv.innerHTML = `
-    <div class="message__avatar">${isUser ? '👤' : '🐾'}</div>
-    <div class="message__content">
-      <div class="message__text">${text}</div>
-      ${showTime ? `<div class="message__time">${currentTime}</div>` : ''}
-    </div>
-  `;
-
-  chatMessages.appendChild(messageDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  const roleSpan = document.createElement('div');
+  roleSpan.className = 'message-role';
+  roleSpan.textContent = role === 'user' ? '👤 Вы' : '🤖 Bagira AI';
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.textContent = content;
+  
+  messageDiv.appendChild(roleSpan);
+  messageDiv.appendChild(contentDiv);
+  chatMessagesDiv.appendChild(messageDiv);
+  
+  // Scroll to bottom
+  chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
 }
 
+// Show typing indicator
 function showTypingIndicator() {
-  const chatMessages = document.getElementById('chatMessages');
-  if (!chatMessages || isTyping) return;
-
-  isTyping = true;
-  const typingDiv = document.createElement('div');
-  typingDiv.className = 'message message--assistant';
-  typingDiv.id = 'typing-indicator';
+  if (!chatMessagesDiv) return;
   
-  typingDiv.innerHTML = `
-    <div class="message__avatar">🐾</div>
-    <div class="message__content">
-      <div class="typing-indicator">
-        <span>Багира печатает</span>
-        <div class="typing-dots">
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  chatMessages.appendChild(typingDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  const typingDiv = document.createElement('div');
+  typingDiv.id = 'typingIndicator';
+  typingDiv.className = 'chat-typing';
+  typingDiv.innerHTML = '<span class="chat-loading"></span>Bagira AI печатает...';
+  
+  chatMessagesDiv.appendChild(typingDiv);
+  chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
 }
 
-function hideTypingIndicator() {
-  const typingIndicator = document.getElementById('typing-indicator');
+// Remove typing indicator
+function removeTypingIndicator() {
+  const typingIndicator = document.getElementById('typingIndicator');
   if (typingIndicator) {
     typingIndicator.remove();
-    isTyping = false;
   }
 }
 
-async function handleSendMessage() {
-  const chatInput = document.getElementById('chatInput');
-  const sendButton = document.getElementById('sendMessage');
-  const chatStatus = document.getElementById('chatStatus');
+// Send chat message using VAPI Chat API
+async function sendChatMessage() {
+  if (!chatInputField || !sendChatButton) return;
   
-  if (!chatInput || !chatInput.value.trim()) return;
-
-  const userMessage = chatInput.value.trim();
-  chatInput.value = '';
-  chatInput.disabled = true;
-  sendButton.disabled = true;
-
+  const message = chatInputField.value.trim();
+  if (!message) return;
+  
+  // Disable input and button while sending
+  chatInputField.disabled = true;
+  sendChatButton.disabled = true;
+  const originalButtonText = sendChatButton.innerHTML;
+  sendChatButton.innerHTML = '<span class="chat-loading"></span>';
+  
   // Add user message to chat
-  addMessage(userMessage, true);
-
+  appendChatMessage('user', message);
+  chatInputField.value = '';
+  
   // Show typing indicator
   showTypingIndicator();
   
-  if (chatStatus) {
-    chatStatus.textContent = 'Багира думает...';
-    chatStatus.style.color = 'var(--text-light)';
-  }
-
+  const payload = {
+    assistantId: CHAT_ASSISTANT_ID,
+    input: message,
+    ...(previousChatId && { previousChatId })
+  };
+  
   try {
-    // Send message to VAPI
-    const result = await sendChatMessage(userMessage, currentChatId);
-    currentChatId = result.chatId;
-
-    // Hide typing indicator
-    hideTypingIndicator();
-
-    // Add assistant response
-    addMessage(result.response, false);
-
-    // Check if response contains booking trigger phrases
-    const lowerResponse = result.response.toLowerCase();
-    const triggerPhrases = ['телефон', 'номер', 'контакт', 'email', 'почт', 'запись', 'консультация'];
+    console.log('Sending message to VAPI Chat API:', message);
     
-    if (triggerPhrases.some(phrase => lowerResponse.includes(phrase))) {
-      console.log('Booking trigger detected in chat response');
+    const response = await fetch("https://api.vapi.ai/chat", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${CHAT_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('VAPI Chat API response:', data);
+    
+    // Store chat ID for continuity
+    if (data.id) {
+      previousChatId = data.id;
+    }
+    
+    // Remove typing indicator
+    removeTypingIndicator();
+    
+    // Get assistant response
+    const reply = data.output?.[0]?.content || data.message || "Извините, я не смог обработать ваш запрос.";
+    appendChatMessage('assistant', reply);
+    
+    // Check if response indicates booking/contact request
+    const lowerReply = reply.toLowerCase();
+    const bookingTriggers = ['телефон', 'номер', 'контакт', 'email', 'почт', 'phone', 'запись', 'консультация'];
+    
+    if (bookingTriggers.some(trigger => lowerReply.includes(trigger))) {
+      console.log('Detected booking request in chat, showing booking modal');
       setTimeout(() => {
-        closeChatModal();
         showVapiBookingModal();
-      }, 2000);
+        closeModal('textChatModal');
+      }, 1000);
     }
-
-    if (chatStatus) {
-      chatStatus.textContent = 'Готов к общению';
-      chatStatus.style.color = 'var(--success-color)';
-    }
-
+    
   } catch (error) {
-    console.error('Chat error:', error);
-    hideTypingIndicator();
-    
-    addMessage('Извините, произошла ошибка. Попробуйте еще раз.', false);
-    
-    if (chatStatus) {
-      chatStatus.textContent = 'Ошибка соединения';
-      chatStatus.style.color = 'var(--error-color)';
-    }
+    console.error('Error sending chat message:', error);
+    removeTypingIndicator();
+    appendChatMessage('assistant', `⚠️ Ошибка: ${error.message}. Попробуйте еще раз или используйте голосовой помощник.`);
+  } finally {
+    // Re-enable input and button
+    chatInputField.disabled = false;
+    sendChatButton.disabled = false;
+    sendChatButton.innerHTML = originalButtonText;
+    chatInputField.focus();
   }
-
-  // Re-enable input
-  chatInput.disabled = false;
-  sendButton.disabled = false;
-  chatInput.focus();
 }
 
 // Handle custom chat button click to open chat modal
 const handleVapiChatButtonClick = () => {
-  console.log('Custom VAPI Chat button clicked - opening chat interface.');
-  openChatModal();
-};
-
-// Chat modal event listeners setup
-function setupChatModalEvents() {
-  const closeChatBtn = document.getElementById('closeChatModal');
-  const chatInput = document.getElementById('chatInput');
-  const sendButton = document.getElementById('sendMessage');
-
-  if (closeChatBtn) {
-    closeChatBtn.addEventListener('click', closeChatModal);
+  console.log('Opening text chat modal...');
+  openModal('textChatModal');
+  
+  // Initialize chat if needed
+  if (!chatMessagesDiv) {
+    setTimeout(initializeChatModal, 100);
   }
-
-  if (chatInput) {
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSendMessage();
-      }
-    });
-  }
-
-  if (sendButton) {
-    sendButton.addEventListener('click', handleSendMessage);
-  }
-
-  // Close chat modal when clicking outside
-  document.addEventListener('click', (e) => {
-    if (e.target.id === 'chatModal') {
-      closeChatModal();
+  
+  // Focus input field
+  setTimeout(() => {
+    if (chatInputField) {
+      chatInputField.focus();
     }
-  });
-
-  // Close chat modal with Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeChatModal();
-    }
-  });
-
-  console.log('Chat modal event listeners set up');
-} 
+  }, 200);
+  
+  // Add welcome message if chat is empty
+  if (chatMessagesDiv && chatMessagesDiv.children.length === 0) {
+    setTimeout(() => {
+      appendChatMessage('assistant', 'Здравствуйте! Я Bagira AI. Чем могу помочь вам сегодня?');
+    }, 300);
+  }
+}; 

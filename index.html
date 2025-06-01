@@ -370,43 +370,29 @@
     </div>
   </div>
 
-  <!-- Chat Modal -->
-  <div id="chatModal" class="modal">
+  <!-- Text Chat Modal -->
+  <div id="textChatModal" class="modal">
     <div class="modal__content chat-modal">
       <button class="modal__close" id="closeChatModal">&times;</button>
-      <div class="chat-header">
-        <div class="chat-header__info">
-          <h3 class="chat-header__title">💬 Bagira AI</h3>
-          <p class="chat-header__subtitle">Ваш юридический ассистент</p>
-        </div>
-        <div class="chat-header__status">
-          <span class="status-indicator online"></span>
-          <span class="status-text">Онлайн</span>
-        </div>
+      <h3 class="modal__title">💬 Чат с Bagira AI</h3>
+      
+      <div id="chatContainer" class="chat-container">
+        <div id="chatMessages" class="chat-messages"></div>
       </div>
       
-      <div class="chat-messages" id="chatMessages">
-        <div class="message message--assistant">
-          <div class="message__avatar">🐾</div>
-          <div class="message__content">
-            <div class="message__text">Здравствуйте! Я Bagira AI. Чем могу помочь вам сегодня?</div>
-            <div class="message__time" id="welcomeTime"></div>
-          </div>
-        </div>
+      <div class="chat-input-container">
+        <input type="text" id="chatMessageInput" class="chat-input" placeholder="Напишите ваше сообщение..." maxlength="500">
+        <button id="sendChatMessage" class="btn btn--primary chat-send-btn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
       </div>
       
-      <div class="chat-input-area">
-        <div class="chat-input-container">
-          <input type="text" id="chatInput" class="chat-input" placeholder="Напишите ваш вопрос..." disabled>
-          <button id="sendMessage" class="chat-send-btn" disabled>
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </div>
-        <div class="chat-status" id="chatStatus">Подключение к ассистенту...</div>
+      <div class="chat-footer">
+        <small>Нажмите Enter для отправки сообщения</small>
       </div>
     </div>
   </div>
 
-  <script src="script.js?v=2.0"></script>
+  <script src="script.js?v=1.5"></script>
 </body>
 </html>
