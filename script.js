@@ -380,7 +380,7 @@ const CHAT_ASSISTANT_ID = '183660fe-2888-43c5-91c3-ef29e003035c';
 // Store in localStorage to maintain context across page refreshes
 let sessionId = localStorage.getItem('bagira_session_id');
 if (!sessionId) {
-  sessionId = 'bagira_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  sessionId = 'session_' + Date.now();
   localStorage.setItem('bagira_session_id', sessionId);
 }
 console.log('Using sessionId for conversation context:', sessionId);
@@ -646,7 +646,19 @@ async function sendChatMessage(customMessage = null) {
   
   const message = customMessage || (input ? input.value.trim() : '');
   
-  if (!message) return;
+  // Better message validation
+  if (!message || message.trim() === '') {
+    // Show validation message without adding to chat
+    if (input) {
+      input.style.borderColor = '#ef4444';
+      input.placeholder = 'Пожалуйста, введите сообщение...';
+      setTimeout(() => {
+        input.style.borderColor = '#d1d5db';
+        input.placeholder = 'Введите ваш вопрос...';
+      }, 2000);
+    }
+    return;
+  }
   
   console.log('Sending message with sessionId:', sessionId, 'lastChatId:', lastChatId);
   
@@ -665,7 +677,7 @@ async function sendChatMessage(customMessage = null) {
   typingIndicator.className = 'chat-message bot-message';
   typingIndicator.innerHTML = `
     <div class="typing-indicator">
-      🤖 Печатаю...
+      🤖 Bagira думает...
       <div class="typing-dots">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -678,25 +690,30 @@ async function sendChatMessage(customMessage = null) {
   // Scroll to bottom
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
   
+  // Improved payload structure
+  const payload = {
+    assistantId: CHAT_ASSISTANT_ID,
+    input: message,
+    sessionId: sessionId
+  };
+  if (lastChatId) {
+    payload.previousChatId = lastChatId;
+  }
+  
   try {
-    const body = {
-      assistantId: CHAT_ASSISTANT_ID,
-      input: message,
-      sessionId: sessionId  // Add sessionId to maintain conversation context
-    };
-    
-    if (lastChatId) {
-      body.previousChatId = lastChatId;
-    }
-    
     const response = await fetch('https://api.vapi.ai/chat', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + CHAT_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
+    
+    // Better error handling
+    if (!response.ok) {
+      throw new Error('Ошибка запроса: ' + response.status);
+    }
     
     const data = await response.json();
     lastChatId = data.id;
@@ -707,7 +724,7 @@ async function sendChatMessage(customMessage = null) {
     typingIndicator.remove();
     
     // Add bot response
-    const reply = data.output && data.output[0] ? data.output[0].content : '[Извините, не удалось получить ответ]';
+    const reply = data.output && data.output[0] ? data.output[0].content : '[Нет ответа]';
     const botMessage = document.createElement('div');
     botMessage.className = 'chat-message bot-message';
     botMessage.innerHTML = `<div class="message-content">🤖 ${reply}</div>`;
@@ -723,15 +740,15 @@ async function sendChatMessage(customMessage = null) {
     }
     
   } catch (error) {
-    console.error('Chat API Error:', error);
+    console.error('❌ Ошибка:', error);
     
     // Remove typing indicator
     typingIndicator.remove();
     
-    // Add error message
+    // Add improved error message
     const errorMessage = document.createElement('div');
     errorMessage.className = 'chat-message bot-message';
-    errorMessage.innerHTML = `<div class="message-content">❌ Извините, произошла ошибка. Попробуйте еще раз.</div>`;
+    errorMessage.innerHTML = `<div class="message-content">❌ Не удалось получить ответ от Bagira. Попробуйте еще раз.</div>`;
     messagesContainer.appendChild(errorMessage);
   }
   
@@ -744,7 +761,7 @@ async function sendChatMessage(customMessage = null) {
 function resetConversation() {
   lastChatId = null;
   // Generate new session ID
-  sessionId = 'bagira_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  sessionId = 'session_' + Date.now();
   localStorage.setItem('bagira_session_id', sessionId);
   console.log('Conversation reset with new sessionId:', sessionId);
   
