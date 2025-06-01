@@ -586,10 +586,18 @@ p {
   box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4) !important;
 }
 
+.vapi-button__content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
 .vapi-button__icon {
   font-size: 1.5rem !important;
   animation: bounce 2s infinite !important;
   color: var(--text-white) !important;
+  flex-shrink: 0 !important;
 }
 
 .vapi-button__text {
@@ -597,6 +605,7 @@ p {
   flex-direction: column !important;
   line-height: 1.2 !important;
   color: var(--text-white) !important;
+  flex-grow: 1 !important;
 }
 
 .vapi-button__title {
@@ -605,6 +614,10 @@ p {
   color: var(--text-white) !important;
   margin: 0 !important;
   padding: 0 !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .vapi-button__subtitle {
@@ -613,14 +626,91 @@ p {
   color: var(--text-white) !important;
   margin: 0 !important;
   padding: 0 !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Text Chat Button */
+.vapi-chat-button {
+  position: fixed !important;
+  bottom: 2rem !important;
+  left: 2rem !important;
+  z-index: 9999 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: var(--text-white) !important;
+  border-radius: 50px !important;
+  padding: 1rem 1.5rem !important;
+  cursor: pointer !important;
+  box-shadow: var(--shadow-xl) !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  max-width: 280px !important;
+  animation: pulse-green 3s infinite !important;
+  border: none !important;
+  font-family: var(--font-body) !important;
+}
+
+.vapi-chat-button:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.4) !important;
+}
+
+.vapi-chat-button__content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
+.vapi-chat-button__icon {
+  font-size: 1.5rem !important;
+  animation: bounce 2s infinite !important;
+  color: var(--text-white) !important;
+  flex-shrink: 0 !important;
+}
+
+.vapi-chat-button__text {
+  display: flex !important;
+  flex-direction: column !important;
+  line-height: 1.2 !important;
+  color: var(--text-white) !important;
+  flex-grow: 1 !important;
+}
+
+.vapi-chat-button__title {
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  color: var(--text-white) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vapi-chat-button__subtitle {
+  font-size: 0.8rem !important;
+  opacity: 0.9 !important;
+  color: var(--text-white) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 /* Hide original VAPI button */
 div[data-vapi],
 .vapi-btn,
 .vapi-widget,
-button[class*="vapi"]:not(#customVapiButton),
-div[class*="vapi"]:not(.vapi-button) {
+button[class*="vapi"]:not(#customVapiButton):not(#customChatButton),
+div[class*="vapi"]:not(.vapi-button):not(.vapi-chat-button) {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -630,14 +720,26 @@ div[class*="vapi"]:not(.vapi-button) {
   z-index: -1 !important;
 }
 
-/* Ensure our custom button stays visible */
+/* Ensure our custom buttons stay visible */
 #customVapiButton,
-.vapi-button {
+.vapi-button,
+#customChatButton,
+.vapi-chat-button {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
   z-index: 9999 !important;
+}
+
+/* Additional animation for chat button */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+  }
 }
 
 /* Footer */
@@ -875,17 +977,32 @@ div[class*="vapi"]:not(.vapi-button) {
   }
   
   .vapi-button {
-    bottom: 1rem;
-    right: 1rem;
-    padding: 0.75rem 1rem;
-    max-width: 240px;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    padding: 0.75rem 1rem !important;
+    max-width: 240px !important;
   }
   
   .vapi-button__title {
-    font-size: 0.85rem;
+    font-size: 0.85rem !important;
   }
   
   .vapi-button__subtitle {
-    font-size: 0.75rem;
+    font-size: 0.75rem !important;
+  }
+  
+  .vapi-chat-button {
+    bottom: 1rem !important;
+    left: 1rem !important;
+    padding: 0.75rem 1rem !important;
+    max-width: 240px !important;
+  }
+  
+  .vapi-chat-button__title {
+    font-size: 0.85rem !important;
+  }
+  
+  .vapi-chat-button__subtitle {
+    font-size: 0.75rem !important;
   }
 } 

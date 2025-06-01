@@ -8,9 +8,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // VAPI Configuration with working CDN
 var vapiInstance = null;
+var vapiChatInstance = null;
 const apiKey = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
 const vapiSquadId = "f468f8d5-b6bd-44fd-b39e-358278e86404";
 let isVapiLoaded = false;
+let isVapiChatLoaded = false;
 let vapiStarted = false;
 
 // Load VAPI SDK with working CDN
@@ -22,6 +24,7 @@ let vapiStarted = false;
 
   g.onload = function () {
     try {
+      // Voice VAPI instance
       vapiInstance = window.vapiSDK.run({
         apiKey: apiKey,
         squad: vapiSquadId,
@@ -37,35 +40,63 @@ let vapiStarted = false;
         }
       });
       
+      // Chat VAPI instance
+      vapiChatInstance = window.vapiSDK.run({
+        apiKey: apiKey,
+        squad: vapiSquadId,
+        config: {
+          position: "bottom-left",
+          idle: {
+            color: "#10b981",
+            type: "pill",
+            title: "Написать Bagira AI",
+            subtitle: "Текстовый чат",
+            icon: "https://unpkg.com/lucide-static@0.321.0/icons/message-circle.svg"
+          },
+          chat: {
+            enabled: true,
+            inputPlaceholder: "Введите ваш юридический вопрос...",
+            assistantName: "Bagira AI",
+            avatarUrl: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>"
+          }
+        }
+      });
+      
       isVapiLoaded = true;
-      console.log('VAPI SDK loaded successfully with squad');
+      isVapiChatLoaded = true;
+      console.log('VAPI SDK loaded successfully with voice and chat');
       
       // Listen for VAPI messages to trigger booking modal
-      if (vapiInstance && vapiInstance.on) {
-        vapiInstance.on('message', (message) => {
-          console.log('VAPI Message received:', message);
-          
-          // Check if assistant is asking for contact details
-          if (message.type === 'transcript' && message.transcript) {
-            const transcript = message.transcript.toLowerCase();
-            if (transcript.includes('phone') || transcript.includes('телефон') || 
-                transcript.includes('номер') || transcript.includes('контакт') ||
-                transcript.includes('email') || transcript.includes('почт')) {
-              console.log('Triggering booking modal from VAPI message');
-              setTimeout(() => showVapiBookingModal(), 1000);
+      const setupMessageListener = (instance, type) => {
+        if (instance && instance.on) {
+          instance.on('message', (message) => {
+            console.log(`VAPI ${type} Message received:`, message);
+            
+            // Check if assistant is asking for contact details
+            if (message.type === 'transcript' && message.transcript) {
+              const transcript = message.transcript.toLowerCase();
+              if (transcript.includes('phone') || transcript.includes('телефон') || 
+                  transcript.includes('номер') || transcript.includes('контакт') ||
+                  transcript.includes('email') || transcript.includes('почт')) {
+                console.log(`Triggering booking modal from VAPI ${type} message`);
+                setTimeout(() => showVapiBookingModal(), 1000);
+              }
             }
-          }
-          
-          // Check for function calls
-          if (message.type === 'function-call' || 
-              (message.content && (message.content.includes('запись') || message.content.includes('booking')))) {
-            console.log('Triggering booking modal from function call');
-            setTimeout(() => showVapiBookingModal(), 500);
-          }
-        });
-      }
+            
+            // Check for function calls
+            if (message.type === 'function-call' || 
+                (message.content && (message.content.includes('запись') || message.content.includes('booking')))) {
+              console.log(`Triggering booking modal from ${type} function call`);
+              setTimeout(() => showVapiBookingModal(), 500);
+            }
+          });
+        }
+      };
       
-      // Hide the original VAPI button immediately
+      setupMessageListener(vapiInstance, 'voice');
+      setupMessageListener(vapiChatInstance, 'chat');
+      
+      // Hide the original VAPI buttons immediately
       hideOriginalVapiButtons();
       
     } catch (error) {
@@ -79,48 +110,81 @@ let vapiStarted = false;
 })(document, "script");
 
 // Update VAPI button text
-const updateVapiButton = (title, subtitle) => {
-  const button = document.getElementById('customVapiButton');
+const updateVapiButton = (title, subtitle, isChat = false) => {
+  const buttonId = isChat ? 'customChatButton' : 'customVapiButton';
+  const button = document.getElementById(buttonId);
   if (button) {
-    const titleEl = button.querySelector('.vapi-button__title');
-    const subtitleEl = button.querySelector('.vapi-button__subtitle');
-    if (titleEl) titleEl.textContent = title;
-    if (subtitleEl) subtitleEl.textContent = subtitle;
+    const titleEl = button.querySelector(isChat ? '.vapi-chat-button__title' : '.vapi-button__title');
+    const subtitleEl = button.querySelector(isChat ? '.vapi-chat-button__subtitle' : '.vapi-button__subtitle');
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.style.display = 'block';
+      titleEl.style.visibility = 'visible';
+      titleEl.style.opacity = '1';
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = subtitle;
+      subtitleEl.style.display = 'block';
+      subtitleEl.style.visibility = 'visible';
+      subtitleEl.style.opacity = '1';
+    }
   }
 };
 
 // Handle VAPI button click with working implementation
-const handleVapiClick = async () => {
-  console.log('Custom VAPI button clicked');
+const handleVapiClick = async (isChat = false) => {
+  const type = isChat ? 'chat' : 'voice';
+  console.log(`Custom VAPI ${type} button clicked`);
   
-  if (!isVapiLoaded || !vapiInstance) {
-    console.log('VAPI not loaded yet');
-    updateVapiButton('Загрузка...', 'Подождите');
+  const instance = isChat ? vapiChatInstance : vapiInstance;
+  const isLoaded = isChat ? isVapiChatLoaded : isVapiLoaded;
+  
+  if (!isLoaded || !instance) {
+    console.log(`VAPI ${type} not loaded yet`);
+    updateVapiButton('Загрузка...', 'Подождите', isChat);
     setTimeout(() => {
-      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+      updateVapiButton(
+        isChat ? 'Написать Bagira AI' : 'Поговорить с Bagira AI', 
+        isChat ? 'Текстовый чат' : 'Голосовой помощник', 
+        isChat
+      );
     }, 3000);
     return;
   }
 
   try {
     // Use the original VAPI button functionality by simulating click
-    const originalVapiButton = document.querySelector('.vapi-btn');
+    const selector = isChat ? '.vapi-btn[data-position="bottom-left"]' : '.vapi-btn[data-position="bottom-right"]';
+    const originalVapiButton = document.querySelector(selector) || document.querySelector('.vapi-btn');
+    
     if (originalVapiButton) {
-      console.log('Triggering original VAPI button');
+      console.log(`Triggering original VAPI ${type} button`);
       originalVapiButton.click();
-      updateVapiButton('Соединение...', 'Подготовка звонка');
+      updateVapiButton(
+        isChat ? 'Открытие чата...' : 'Соединение...', 
+        isChat ? 'Подготовка чата' : 'Подготовка звонка', 
+        isChat
+      );
     } else {
-      console.log('Original VAPI button not found');
-      updateVapiButton('Ошибка', 'Попробуйте позже');
+      console.log(`Original VAPI ${type} button not found`);
+      updateVapiButton('Ошибка', 'Попробуйте позже', isChat);
       setTimeout(() => {
-        updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+        updateVapiButton(
+          isChat ? 'Написать Bagira AI' : 'Поговорить с Bagira AI', 
+          isChat ? 'Текстовый чат' : 'Голосовой помощник', 
+          isChat
+        );
       }, 3000);
     }
   } catch (error) {
-    console.error('Error with VAPI call:', error);
-    updateVapiButton('Ошибка', 'Попробуйте позже');
+    console.error(`Error with VAPI ${type} call:`, error);
+    updateVapiButton('Ошибка', 'Попробуйте позже', isChat);
     setTimeout(() => {
-      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+      updateVapiButton(
+        isChat ? 'Написать Bagira AI' : 'Поговорить с Bagira AI', 
+        isChat ? 'Текстовый чат' : 'Голосовой помощник', 
+        isChat
+      );
     }, 3000);
   }
 };
@@ -230,8 +294,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // Custom VAPI Button Event
   const customVapiButton = document.getElementById('customVapiButton');
   if (customVapiButton) {
-    customVapiButton.addEventListener('click', handleVapiClick);
+    customVapiButton.addEventListener('click', () => handleVapiClick());
     console.log('Custom VAPI button event listener attached');
+    
+    // Ensure text is visible initially
+    setTimeout(() => {
+      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false);
+    }, 100);
+  }
+  
+  // Custom Chat Button Event
+  const customChatButton = document.getElementById('customChatButton');
+  if (customChatButton) {
+    customChatButton.addEventListener('click', () => handleVapiClick(true));
+    console.log('Custom Chat button event listener attached');
+    
+    // Ensure text is visible initially
+    setTimeout(() => {
+      updateVapiButton('Написать Bagira AI', 'Текстовый чат', true);
+    }, 100);
   }
   
   // Modal Event Listeners
@@ -345,26 +426,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Additional VAPI button state monitoring
 const monitorVapiButtonStates = () => {
-  const originalButton = document.querySelector('.vapi-btn');
-  if (originalButton) {
-    const customButton = document.getElementById('customVapiButton');
-    
+  // Monitor voice button
+  const originalVoiceButton = document.querySelector('.vapi-btn[data-position="bottom-right"]') || 
+                             document.querySelectorAll('.vapi-btn')[0];
+  if (originalVoiceButton) {
     // Check if call is active by looking at button classes
-    if (originalButton.classList.contains('vapi-btn-is-active')) {
-      updateVapiButton('Идет звонок...', 'Нажмите для завершения');
-    } else if (originalButton.classList.contains('vapi-btn-is-loading')) {
-      updateVapiButton('Соединение...', 'Подготовка звонка');
+    if (originalVoiceButton.classList.contains('vapi-btn-is-active')) {
+      updateVapiButton('Идет звонок...', 'Нажмите для завершения', false);
+    } else if (originalVoiceButton.classList.contains('vapi-btn-is-loading')) {
+      updateVapiButton('Соединение...', 'Подготовка звонка', false);
     } else {
-      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false);
     }
     
     // Monitor for text changes that might indicate booking request
-    const buttonText = originalButton.textContent || originalButton.innerText || '';
+    const buttonText = originalVoiceButton.textContent || originalVoiceButton.innerText || '';
     if (buttonText.toLowerCase().includes('phone') || 
         buttonText.toLowerCase().includes('contact') ||
         buttonText.toLowerCase().includes('телефон') ||
         buttonText.toLowerCase().includes('номер')) {
-      console.log('Detected booking request from button text');
+      console.log('Detected booking request from voice button text');
+      setTimeout(() => showVapiBookingModal(), 1000);
+    }
+  }
+  
+  // Monitor chat button
+  const originalChatButton = document.querySelector('.vapi-btn[data-position="bottom-left"]') || 
+                            document.querySelectorAll('.vapi-btn')[1];
+  if (originalChatButton) {
+    // Check if chat is active
+    if (originalChatButton.classList.contains('vapi-btn-is-active')) {
+      updateVapiButton('Чат активен...', 'Нажмите для закрытия', true);
+    } else if (originalChatButton.classList.contains('vapi-btn-is-loading')) {
+      updateVapiButton('Открытие чата...', 'Подготовка чата', true);
+    } else {
+      updateVapiButton('Написать Bagira AI', 'Текстовый чат', true);
+    }
+    
+    // Monitor for text changes that might indicate booking request
+    const chatText = originalChatButton.textContent || originalChatButton.innerText || '';
+    if (chatText.toLowerCase().includes('phone') || 
+        chatText.toLowerCase().includes('contact') ||
+        chatText.toLowerCase().includes('телефон') ||
+        chatText.toLowerCase().includes('номер')) {
+      console.log('Detected booking request from chat button text');
       setTimeout(() => showVapiBookingModal(), 1000);
     }
   }
