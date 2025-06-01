@@ -706,11 +706,8 @@ p {
 }
 
 /* Hide original VAPI button */
-div[data-vapi],
-.vapi-btn,
-.vapi-widget,
-button[class*="vapi"]:not(#customVapiButton):not(#customChatButton),
-div[class*="vapi"]:not(.vapi-button):not(.vapi-chat-button) {
+/* We only want to hide the SDK's default clickable buttons/pills, not potential chat windows */
+.vapi-btn { /* This is the primary class VAPI SDK uses for its buttons */
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -719,6 +716,24 @@ div[class*="vapi"]:not(.vapi-button):not(.vapi-chat-button) {
   pointer-events: none !important;
   z-index: -1 !important;
 }
+
+/* Any other specific selectors for SDK elements that are strictly buttons and not UI containers */
+/* For example, if VAPI uses .vapi-widget specifically for the pill/button */
+.vapi-widget {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Remove the overly broad selectors that might hide the chat window itself */
+/* COMMENTED OUT: div[data-vapi] - too broad if chat window uses it */
+/* COMMENTED OUT: button[class*="vapi"]:not(#customVapiButton):not(#customChatButton) - .vapi-btn should cover clickable buttons */
+/* COMMENTED OUT: div[class*="vapi"]:not(.vapi-button):not(.vapi-chat-button) - too broad */
+
 
 /* Ensure our custom buttons stay visible */
 #customVapiButton,
