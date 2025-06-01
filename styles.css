@@ -1,32 +1,29 @@
 /* CSS Variables */
 :root {
-  --primary-color: #7C3AED; /* Violet - Main Accent */
-  --primary-dark: #6d28d9;  /* Darker Violet */
-  --primary-light: #8b5cf6; /* Lighter Violet */
+  --primary-color: #7A3FFD;
+  --primary-dark: #5b2bc2;
+  --primary-light: #9b66ff;
+  --secondary-color: #1e40af;
+  --accent-color: #f59e0b;
+  --success-color: #10b981;
+  --error-color: #ef4444;
   
-  --secondary-color: #10B981; /* Emerald - For success, positive accents */
-  /* --accent-color: #f59e0b; -- Orange, removing if not actively used to simplify */
-  
-  --success-color: var(--secondary-color); /* Use Emerald for success */
-  --error-color: #EF4444;   /* Red */
-  
-  --text-primary: #1C1C1E;     /* Near Black */
-  --text-secondary: #6B7280;   /* Medium Gray */
-  --text-light: #A0AEC0;      /* Lighter Gray (for text on dark backgrounds) - adjusted for better contrast */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
   --text-white: #ffffff;
   
-  --bg-primary: #F9FAFB;       /* Very Light Gray - Main page background */
-  --bg-secondary: #F3F4F6;     /* Light Gray - Alternate section background */
-  --bg-accent: #E5E7EB;       /* Medium Light Gray - For cards, borders, or subtle accents */
-  --bg-dark: #111827;         /* Very Dark Gray/Near Black - Footer background */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-accent: #f3f4f6;
+  --bg-dark: #1f2937;
   
-  --border-light: var(--bg-accent); /* Use bg-accent for borders */
-  --border-medium: #D1D5DB;        /* Kept for slightly stronger borders if needed */
-
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(28, 28, 30, 0.07); /* Adjusted shadow color for new text color */
-  --shadow-lg: 0 10px 15px -3px rgba(28, 28, 30, 0.07);
-  --shadow-xl: 0 20px 25px -5px rgba(28, 28, 30, 0.07);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -55,7 +52,7 @@ body {
   font-family: var(--font-body);
   line-height: 1.6;
   color: var(--text-primary);
-  background-color: var(--bg-primary); /* Applied main background */
+  background-color: var(--bg-primary);
   overflow-x: hidden;
 }
 
@@ -126,7 +123,8 @@ p {
 .btn--primary:hover {
   background-color: var(--primary-dark);
   border-color: var(--primary-dark);
-  /* transform and box-shadow inherited or can be re-specified */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .btn--secondary {
@@ -163,19 +161,20 @@ p {
 
 /* Header */
 .header {
-  background-color: color-mix(in srgb, var(--bg-primary) 95%, transparent); /* Ensure this uses new bg-primary */
+  background-color: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
   position: sticky;
   top: 0;
   z-index: 1000;
   backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem var(--container-padding);
+  padding: 1rem var(--container-padding);
 }
 
 .nav__brand {
@@ -187,23 +186,14 @@ p {
   color: var(--text-primary);
 }
 
-.nav__logo-img {
-  height: 40px;
-  width: auto;
-}
-
 .nav__logo {
-  /* display: none; */
-}
-
-.nav__title {
-  color: var(--text-primary);
+  font-size: 2rem;
+  color: var(--primary-color);
 }
 
 /* Hero Section */
 .hero {
-  /* background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); */ /* Optional gradient */
-  background-color: var(--bg-primary); /* Or solid color */
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   padding: 4rem 0;
   min-height: 90vh;
   display: flex;
@@ -263,7 +253,7 @@ p {
 
 .hero__trust {
   padding: 0.75rem 1rem;
-  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  background-color: rgba(122, 63, 253, 0.1);
   border-radius: var(--radius-md);
   border-left: 4px solid var(--primary-color);
   max-width: 400px;
@@ -593,17 +583,17 @@ p {
 
 .vapi-button:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 20px 40px color-mix(in srgb, var(--primary-color) 40%, transparent) !important;
+  box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4) !important;
 }
 
 /* Active call state for VAPI Button */
 .vapi-button--active {
-  background: linear-gradient(135deg, var(--error-color) 0%, color-mix(in srgb, var(--error-color) 70%, black)) !important; /* Red gradient */
+  background: linear-gradient(135deg, var(--error-color) 0%, #c00000) !important; /* Red gradient */
   animation: none !important; /* Stop pulsing when active */
 }
 
 .vapi-button--active:hover {
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--error-color) 50%, transparent) !important; /* Red shadow on hover */
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5) !important; /* Red shadow on hover */
 }
 
 .vapi-button__content {
@@ -836,7 +826,7 @@ p {
 }
 
 .footer__link:hover {
-  color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .footer__bottom {
@@ -937,13 +927,13 @@ p {
 }
 
 .form__message.success {
-  background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
+  background-color: rgba(16, 185, 129, 0.1);
   color: var(--success-color);
   border: 1px solid var(--success-color);
 }
 
 .form__message.error {
-  background-color: color-mix(in srgb, var(--error-color) 10%, transparent);
+  background-color: rgba(239, 68, 68, 0.1);
   color: var(--error-color);
   border: 1px solid var(--error-color);
 }
