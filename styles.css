@@ -757,6 +757,16 @@ p {
   z-index: 9999 !important;
 }
 
+/* VAPI Text Widget Container */
+#bagira-widget {
+  z-index: 9998 !important; /* Slightly lower than our custom buttons */
+}
+
+/* Ensure VAPI text widget components don't interfere with our buttons */
+#bagira-widget * {
+  z-index: 9998 !important;
+}
+
 /* Additional animation for chat button */
 @keyframes pulse-green {
   0%, 100% {

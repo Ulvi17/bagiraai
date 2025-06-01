@@ -264,7 +264,7 @@ const handleVapiCustomButtonClick = async () => {
 
 // DOMContentLoaded - Main setup
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded, initializing Bagira AI UI interactions (Voice Only Focus)...');
+  console.log('DOM loaded, initializing Bagira AI UI interactions (Voice & Text)...');
   
   const yearEl = document.getElementById('currentYear');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -276,13 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник'), 200);
   } else { console.error('Custom Voice Button (customVapiButton) not found!');}
   
-  // Remove chat button listener if it was added
+  // Set up chat button listener and show it
   const customChatBtn = document.getElementById('customChatButton');
   if (customChatBtn) {
-    // customChatBtn.removeEventListener('click', handleVapiCustomButtonClick); // If a named function was used
-    // Or simply hide it / don't initialize its listener
-    customChatBtn.style.display = 'none'; // Hide the chat button for now
-    console.log('Custom Chat Button has been hidden as we focus on voice only.');
+    // Show the chat button
+    customChatBtn.style.display = 'block';
+    // Add click event listener for text chat
+    customChatBtn.addEventListener('click', handleVapiChatButtonClick);
+    console.log('Custom Chat Button shown and event listener attached');
+  } else {
+    console.error('Custom Chat Button (customChatButton) not found!');
   }
   
   setupModalEvents(); 
@@ -303,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   
-  console.log('Bagira AI UI initialization complete (Voice Only Focus).');
+  console.log('Bagira AI UI initialization complete (Voice & Text).');
 });
 
 // Utility functions (ensure these are complete and correct)
@@ -359,3 +362,109 @@ const handleVapiBookingForm = (event) => { event.preventDefault(); console.log("
   }).catch(error => {
     console.error("Ошибка отправки формы Bagira AI:", error); alert("Что-то пошло не так. ❌\n" + (error.message || error)); closeModal('vapiBookingModal');
   }).finally(() => { submitButton.disabled = false; submitButton.textContent = originalButtonText; });}; 
+
+// VAPI Text Widget Functionality
+let vapiTextInstance = null;
+
+// Initialize VAPI Text Widget
+function initializeVapiTextWidget() {
+  // Wait for VAPI SDK to be available
+  if (typeof Vapi === 'undefined') {
+    console.log('VAPI SDK not ready yet, retrying in 500ms...');
+    setTimeout(initializeVapiTextWidget, 500);
+    return;
+  }
+
+  try {
+    console.log('Initializing VAPI Text Widget...');
+    
+    // Initialize the assistant in text mode
+    vapiTextInstance = Vapi.init({
+      assistantId: 'f468f8d5-b6bd-44fd-b39e-358278e86404', // Using the same assistant ID
+      mode: 'text', // Enables text input
+      container: document.getElementById('bagira-widget'),
+      theme: {
+        primaryColor: '#22c55e', // Green color to match the green button
+        font: 'Inter',
+        chatBackgroundColor: '#F9F9FB',
+        textColor: '#1C1C1E',
+        botMessageColor: '#F2F2F7',
+        userMessageColor: '#22c55e',
+      },
+      welcomeMessage: 'Здравствуйте! Я Bagira AI. Чем могу помочь вам сегодня?',
+      showStartButton: false, // We'll trigger it manually with our custom button
+    });
+
+    console.log('VAPI Text Widget initialized successfully');
+
+    // Set up event listeners for text widget
+    if (vapiTextInstance && typeof vapiTextInstance.on === 'function') {
+      vapiTextInstance.on("message", handleTextInstanceMessage);
+      console.log('VAPI Text Widget event listeners attached');
+    }
+
+  } catch (error) {
+    console.error('Failed to initialize VAPI Text Widget:', error);
+  }
+}
+
+// Handle text instance messages (similar to voice)
+function handleTextInstanceMessage(message) {
+  console.log('VAPI Text Message received:', message);
+  
+  // Handle booking modal based on text transcripts
+  if (
+    message.type === "transcript" &&
+    message.role === "assistant" &&
+    message.transcriptType === "final" &&
+    message.transcript
+  ) {
+    const assistantUtterance = message.transcript.toLowerCase().trim();
+    const triggerPhrases = ['phone', 'телефон', 'номер', 'контакт', 'email', 'почт', 'type your phone number'];
+    
+    if (triggerPhrases.some(phrase => assistantUtterance.includes(phrase))) {
+      console.log(`Triggering booking modal from VAPI text message: "${assistantUtterance}"`);
+      showVapiBookingModal();
+      const vapiBookingModalTitle = document.querySelector('#vapiBookingModal .modal__title');
+      if(vapiBookingModalTitle) vapiBookingModalTitle.textContent = "Подтвердите запись на консультацию";
+    }
+  }
+  
+  // Handle function calls for booking
+  if (message.type === 'function-call' || 
+      (message.payload && message.payload.name && (message.payload.name.includes('запись') || message.payload.name.includes('booking')))) {
+    console.log(`Triggering booking modal from text function call:`, message.payload);
+    showVapiBookingModal();
+  }
+}
+
+// Handle custom chat button click to open text widget
+const handleVapiChatButtonClick = () => {
+  console.log('Custom VAPI Chat button clicked.');
+  
+  if (!vapiTextInstance) {
+    console.warn('VAPI Text instance not available');
+    return;
+  }
+
+  try {
+    // Open the text chat widget
+    if (typeof vapiTextInstance.open === 'function') {
+      vapiTextInstance.open();
+      console.log('VAPI Text Widget opened');
+    } else if (typeof Vapi.open === 'function') {
+      Vapi.open();
+      console.log('VAPI Text Widget opened via global Vapi.open');
+    } else {
+      console.error('No method available to open VAPI text widget');
+    }
+  } catch (error) {
+    console.error('Error opening VAPI text widget:', error);
+  }
+};
+
+// Wait for page load and VAPI SDK to initialize text widget
+window.addEventListener('load', () => {
+  // Initialize text widget after a short delay to ensure SDK is loaded
+  setTimeout(initializeVapiTextWidget, 1000);
+}); 
