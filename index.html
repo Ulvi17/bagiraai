@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Bagira AI - ИИ-ассистент для юридических фирм | Увеличьте клиентов на 300%</title>
   <meta name="description" content="Багира ИИ автоматически квалифицирует клиентов и записывает на консультации 24/7. Увеличьте конверсию, сэкономьте время, соответствуйте ФЗ-152.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -275,9 +278,6 @@
     </div>
   </div>
 
-  <!-- VAPI Text Widget Container -->
-  <div id="bagira-widget" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;"></div>
-
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -370,7 +370,43 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-  <script src="https://cdn.vapi.ai/sdk/vapi-0.1.16.umd.min.js"></script>
+  <!-- Chat Modal -->
+  <div id="chatModal" class="modal">
+    <div class="modal__content chat-modal">
+      <button class="modal__close" id="closeChatModal">&times;</button>
+      <div class="chat-header">
+        <div class="chat-header__info">
+          <h3 class="chat-header__title">💬 Bagira AI</h3>
+          <p class="chat-header__subtitle">Ваш юридический ассистент</p>
+        </div>
+        <div class="chat-header__status">
+          <span class="status-indicator online"></span>
+          <span class="status-text">Онлайн</span>
+        </div>
+      </div>
+      
+      <div class="chat-messages" id="chatMessages">
+        <div class="message message--assistant">
+          <div class="message__avatar">🐾</div>
+          <div class="message__content">
+            <div class="message__text">Здравствуйте! Я Bagira AI. Чем могу помочь вам сегодня?</div>
+            <div class="message__time" id="welcomeTime"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-input-area">
+        <div class="chat-input-container">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Напишите ваш вопрос..." disabled>
+          <button id="sendMessage" class="chat-send-btn" disabled>
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="chat-status" id="chatStatus">Подключение к ассистенту...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=2.0"></script>
 </body>
 </html>
