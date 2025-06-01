@@ -604,10 +604,28 @@ p {
 }
 
 /* Hide original VAPI button */
-div[data-vapi] {
+div[data-vapi],
+.vapi-btn,
+.vapi-widget,
+button[class*="vapi"]:not(#customVapiButton),
+div[class*="vapi"]:not(.vapi-button) {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Ensure our custom button stays visible */
+#customVapiButton,
+.vapi-button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 9999 !important;
 }
 
 /* Footer */

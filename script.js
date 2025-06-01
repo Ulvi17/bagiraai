@@ -6,65 +6,52 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// VAPI Configuration
-let vapi = null;
+// VAPI Configuration with working CDN
+var vapiInstance = null;
+const apiKey = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
+const vapiSquadId = "f468f8d5-b6bd-44fd-b39e-358278e86404";
 let isVapiLoaded = false;
 let vapiStarted = false;
 
-// VAPI SDK Integration
-const initializeVAPI = () => {
-  if (typeof Vapi === 'undefined') {
-    console.log('VAPI SDK not loaded yet, retrying...');
-    setTimeout(initializeVAPI, 1000);
-    return;
-  }
+// Load VAPI SDK with working CDN
+(function (d, t) {
+  var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+  g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+  g.defer = g.async = true;
+  s.parentNode.insertBefore(g, s);
 
-  try {
-    vapi = new Vapi("4a37ea94-8f84-4459-b3fa-31c40e0f8031");
-    isVapiLoaded = true;
-    console.log('VAPI initialized successfully');
-
-    // VAPI Event Listeners
-    vapi.on('call-start', () => {
-      console.log('Call started');
-      updateVapiButton('Идет звонок...', 'Нажмите для завершения');
-    });
-
-    vapi.on('call-end', () => {
-      console.log('Call ended');
-      vapiStarted = false;
-      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
-    });
-
-    vapi.on('speech-start', () => {
-      console.log('User started speaking');
-    });
-
-    vapi.on('speech-end', () => {
-      console.log('User stopped speaking');
-    });
-
-    vapi.on('message', (message) => {
-      console.log('Message from VAPI:', message);
+  g.onload = function () {
+    try {
+      vapiInstance = window.vapiSDK.run({
+        apiKey: apiKey,
+        squad: vapiSquadId,
+        config: {
+          position: "bottom-right",
+          idle: {
+            color: "#7A3FFD",
+            type: "pill",
+            title: "Поговорить с Bagira AI",
+            subtitle: "Голосовой юр. помощник",
+            icon: "https://unpkg.com/lucide-static@0.321.0/icons/mic.svg"
+          }
+        }
+      });
       
-      // Check if this is a booking confirmation message
-      if (message.type === 'function-call' || (message.content && message.content.includes('запись'))) {
-        showVapiBookingModal();
-      }
-    });
+      isVapiLoaded = true;
+      console.log('VAPI SDK loaded successfully with squad');
+      
+      // Hide the original VAPI button immediately
+      hideOriginalVapiButtons();
+      
+    } catch (error) {
+      console.error('Failed to initialize VAPI SDK:', error);
+    }
+  };
 
-    vapi.on('error', (error) => {
-      console.error('VAPI Error:', error);
-      updateVapiButton('Ошибка соединения', 'Попробуйте позже');
-      setTimeout(() => {
-        updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
-      }, 3000);
-    });
-
-  } catch (error) {
-    console.error('Failed to initialize VAPI:', error);
-  }
-};
+  g.onerror = function() {
+    console.error('Failed to load VAPI SDK from CDN');
+  };
+})(document, "script");
 
 // Update VAPI button text
 const updateVapiButton = (title, subtitle) => {
@@ -77,17 +64,13 @@ const updateVapiButton = (title, subtitle) => {
   }
 };
 
-// Handle VAPI button click
+// Handle VAPI button click with working implementation
 const handleVapiClick = async () => {
-  console.log('VAPI button clicked');
+  console.log('Custom VAPI button clicked');
   
-  if (!isVapiLoaded || !vapi) {
+  if (!isVapiLoaded || !vapiInstance) {
     console.log('VAPI not loaded yet');
     updateVapiButton('Загрузка...', 'Подождите');
-    
-    // Try to initialize again
-    initializeVAPI();
-    
     setTimeout(() => {
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
     }, 3000);
@@ -95,38 +78,22 @@ const handleVapiClick = async () => {
   }
 
   try {
-    if (vapiStarted) {
-      // Stop the call if it's already running
-      console.log('Stopping VAPI call');
-      vapi.stop();
-      vapiStarted = false;
-      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
-    } else {
-      // Start the call
-      console.log('Starting VAPI call');
+    // Use the original VAPI button functionality by simulating click
+    const originalVapiButton = document.querySelector('.vapi-btn');
+    if (originalVapiButton) {
+      console.log('Triggering original VAPI button');
+      originalVapiButton.click();
       updateVapiButton('Соединение...', 'Подготовка звонка');
-      
-      await vapi.start({
-        assistantId: "e139db91-3cba-456d-b27e-fa7b4cde0e07",
-        assistantOverrides: {
-          transcriber: {
-            provider: "deepgram",
-            model: "nova-2",
-            language: "ru",
-          },
-          voice: {
-            provider: "11labs",
-            voiceId: "cgSgspJ2msm6clMCkdW9",
-          },
-        },
-      });
-      vapiStarted = true;
-      console.log('VAPI call started successfully');
+    } else {
+      console.log('Original VAPI button not found');
+      updateVapiButton('Ошибка', 'Попробуйте позже');
+      setTimeout(() => {
+        updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+      }, 3000);
     }
   } catch (error) {
     console.error('Error with VAPI call:', error);
     updateVapiButton('Ошибка', 'Попробуйте позже');
-    vapiStarted = false;
     setTimeout(() => {
       updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
     }, 3000);
@@ -211,19 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     yearEl.textContent = new Date().getFullYear();
   }
   
-  // Wait for VAPI SDK to load, then initialize
-  const waitForVapi = () => {
-    if (typeof Vapi !== 'undefined') {
-      console.log('VAPI SDK found, initializing...');
-      initializeVAPI();
-    } else {
-      console.log('Waiting for VAPI SDK...');
-      setTimeout(waitForVapi, 500);
-    }
-  };
-  
-  waitForVapi();
-  
   // Custom VAPI Button Event
   const customVapiButton = document.getElementById('customVapiButton');
   if (customVapiButton) {
@@ -242,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     
-    // Video button
+    // Video button - scroll to video
     const videoBtn = document.getElementById('heroVideoCTA');
     if (videoBtn) {
       videoBtn.addEventListener('click', () => {
@@ -296,29 +250,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hide any existing VAPI buttons
   const hideOriginalVapiButtons = () => {
     const selectors = [
-      '[data-vapi]',
+      '.vapi-btn',
       '.vapi-widget',
-      'div[class*="vapi"]',
-      'button[class*="vapi"]'
+      '[data-vapi]',
+      'div[class*="vapi"]:not(#customVapiButton)',
+      'button[class*="vapi"]:not(#customVapiButton)'
     ];
     
     selectors.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(el => {
-        if (el.id !== 'customVapiButton') { // Don't hide our custom button
+        if (el.id !== 'customVapiButton' && !el.closest('#customVapiButton')) {
           el.style.display = 'none !important';
           el.style.visibility = 'hidden !important';
           el.style.opacity = '0 !important';
           el.style.pointerEvents = 'none !important';
+          el.style.position = 'absolute !important';
+          el.style.left = '-9999px !important';
         }
       });
     });
   };
   
-  hideOriginalVapiButtons();
+  // Store the function globally so VAPI SDK can access it
+  window.hideOriginalVapiButtons = hideOriginalVapiButtons;
   
-  // Continuously hide original VAPI buttons as they might be added dynamically
-  setInterval(hideOriginalVapiButtons, 1000);
+  // Hide original buttons initially and continuously
+  hideOriginalVapiButtons();
+  setInterval(hideOriginalVapiButtons, 500);
   
   // Smooth scrolling for anchor links
   const smoothScrollLinks = document.querySelectorAll('a[href^="#"]');
@@ -335,24 +294,22 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Bagira AI website initialized successfully');
 });
 
-// Load VAPI SDK dynamically
-const loadVapiSDK = () => {
-  if (document.querySelector('script[src*="vapi.ai"]')) {
-    return; // Already loaded
+// Additional VAPI button state monitoring
+const monitorVapiButtonStates = () => {
+  const originalButton = document.querySelector('.vapi-btn');
+  if (originalButton) {
+    const customButton = document.getElementById('customVapiButton');
+    
+    // Check if call is active by looking at button classes
+    if (originalButton.classList.contains('vapi-btn-is-active')) {
+      updateVapiButton('Идет звонок...', 'Нажмите для завершения');
+    } else if (originalButton.classList.contains('vapi-btn-is-loading')) {
+      updateVapiButton('Соединение...', 'Подготовка звонка');
+    } else {
+      updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник');
+    }
   }
-  
-  const script = document.createElement('script');
-  script.src = 'https://cdn.vapi.ai/js/vapi.js';
-  script.async = true;
-  script.onload = () => {
-    console.log('VAPI SDK loaded');
-    initializeVAPI();
-  };
-  script.onerror = () => {
-    console.error('Failed to load VAPI SDK');
-  };
-  document.head.appendChild(script);
 };
 
-// Load VAPI SDK
-loadVapiSDK(); 
+// Monitor VAPI button states
+setInterval(monitorVapiButtonStates, 1000); 
