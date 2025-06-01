@@ -86,29 +86,30 @@ function initializeVoiceVapiInstance() {
 }
 
 function findAndStoreVoiceSdkButton() {
-  console.log("Attempting to find and store SDK voice button...");
-  const voiceSelector = '.vapi-btn[data-position="bottom-right"]'; // Selector for the SDK's voice button
-  sdkVoiceButtonElement = document.querySelector(voiceSelector);
+  console.log("Attempting to find and store SDK voice button (revised strategy)...");
+  const sdkButtons = document.querySelectorAll('.vapi-btn');
 
-  if (sdkVoiceButtonElement) {
-    console.log("Found SDK Voice Button:", sdkVoiceButtonElement);
+  if (sdkButtons.length === 1) {
+    sdkVoiceButtonElement = sdkButtons[0];
+    console.log("Found a single .vapi-btn element, assuming it is the SDK Voice Button:", sdkVoiceButtonElement);
     // Hide it immediately after finding
     sdkVoiceButtonElement.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; z-index: -1 !important;';
     console.log("SDK Voice Button has been hidden.");
-  } else {
-    console.warn(`SDK Voice Button NOT FOUND using selector: ${voiceSelector}. The custom button may not work.`);
-    // Attempt to find any .vapi-btn as a last resort if the specific one isn't found
-    const genericButtons = document.querySelectorAll('.vapi-btn');
-    if (genericButtons.length === 1) { // If there's only one, assume it's our voice button
-        sdkVoiceButtonElement = genericButtons[0];
-        console.log("Fallback: Found a single generic .vapi-btn, assuming it is the voice button:", sdkVoiceButtonElement);
+  } else if (sdkButtons.length > 1) {
+    console.warn(`Found ${sdkButtons.length} .vapi-btn elements. This is ambiguous. Attempting to find one with data-position="bottom-right" among them.`);
+    const specificButton = Array.from(sdkButtons).find(btn => btn.dataset.position === "bottom-right");
+    if (specificButton) {
+        sdkVoiceButtonElement = specificButton;
+        console.log("Found SDK Voice Button with data-position among multiple .vapi-btn elements:", sdkVoiceButtonElement);
         sdkVoiceButtonElement.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; z-index: -1 !important;';
-        console.log("Fallback SDK Voice Button has been hidden.");
-    } else if (genericButtons.length > 1) {
-        console.warn("Found multiple generic .vapi-btn elements. Cannot determine which is the correct voice button for fallback.");
+        console.log("Specific SDK Voice Button has been hidden.");
     } else {
-        console.warn("No .vapi-btn elements found at all for fallback.");
+        console.error("Could not identify the correct SDK voice button among multiple .vapi-btn elements. The custom button may not work.");
+        updateVapiButton('Ошибка SDK', 'Неизв. кнопка', 'idle');
     }
+  } else { // sdkButtons.length === 0
+    console.error("SDK Voice Button NOT FOUND. No .vapi-btn elements detected in the DOM. The custom button will not work.");
+    updateVapiButton('Ошибка SDK', 'Кнопка не найдена', 'idle');
   }
 }
 
@@ -198,7 +199,7 @@ const handleVapiCustomButtonClick = async () => {
 
   if (!vapiSDKLoaded) {
     console.warn('VAPI SDK script not loaded yet. Cannot trigger voice action.');
-    updateVapiButton('SDK Загрузка...', 'Подождите', 'idle'); // Or a specific 'error' state if desired
+    updateVapiButton('SDK Загрузка...', 'Подождите', 'idle');
     return;
   }
   if (!vapiVoiceInstance) {
@@ -207,29 +208,16 @@ const handleVapiCustomButtonClick = async () => {
     return;
   }
 
-  // Immediately update to connecting state before attempting action
   updateVapiButton('Соединение...', 'Подключение к ассистенту', 'connecting');
 
   if (sdkVoiceButtonElement) {
     console.log('Attempting to click stored SDK Voice button:', sdkVoiceButtonElement);
     sdkVoiceButtonElement.click(); 
-    // Text update to active/idle will be handled by 'call-started' and 'call-ended' events
+    // State changes to 'active' should be handled by the 'call-started' event listener.
   } else {
-    console.error('Stored SDK Voice button reference is MISSING. Cannot trigger call. Was it found after initialization?');
-    // Fallback: Try to use instance.start() if available and button not found
-    if (vapiVoiceInstance && typeof vapiVoiceInstance.start === 'function') {
-        console.log('SDK button not found, attempting vapiVoiceInstance.start()');
-        try {
-            await vapiVoiceInstance.start(); // Assuming start might be async or trigger events
-            // If .start() doesn't trigger 'call-started' immediately, the 'connecting' state will persist until it does.
-        } catch (startError) {
-            console.error("Error calling vapiVoiceInstance.start():", startError);
-            updateVapiButton('Ошибка запуска', 'Попробуйте снова', 'idle'); // Revert to idle
-        }
-    } else {
-        console.warn('sdkVoiceButtonElement is missing AND vapiVoiceInstance.start() is not a function or instance is missing.');
-        updateVapiButton('Ошибка SDK', 'Не удалось запустить', 'idle'); // Revert to idle
-    }
+    console.error('Stored SDK Voice button reference is MISSING. Cannot trigger call. Was it found after initialization? Check console logs from findAndStoreVoiceSdkButton.');
+    updateVapiButton('Ошибка SDK Кнопки', 'Не найдена', 'idle'); 
+    // No longer attempting vapiVoiceInstance.start() as it requires squad/assistant ID.
   }
 };
 
