@@ -71,7 +71,7 @@ function initializeVoiceVapiInstance() {
                 }
             });
             instance.on('call-ended', () => {
-                console.log('>>> VAPI Event: call-ended received!');
+                console.log('>>> VAPI Event: call-ended received! Setting button to IDLE state.');
                 updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', 'idle');
             });
             instance.on('error', (e) => {
@@ -178,7 +178,7 @@ const updateVapiButton = (title, subtitle, state = 'idle') => {
 
   const titleEl = button.querySelector('.vapi-button__title');
   const subtitleEl = button.querySelector('.vapi-button__subtitle');
-  const iconEl = button.querySelector('.vapi-button__icon'); // Assuming icon is <i class="fas fa-microphone vapi-button__icon"></i>
+  const iconEl = button.querySelector('.vapi-button__icon'); 
 
   if (titleEl) {
     titleEl.textContent = title;
@@ -189,28 +189,25 @@ const updateVapiButton = (title, subtitle, state = 'idle') => {
     subtitleEl.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
   }
 
-  // Manage states
-  button.classList.remove('vapi-button--active', 'vapi-button--connecting'); // Remove all state classes first
-  if (iconEl) iconEl.className = 'fas fa-microphone vapi-button__icon'; // Reset icon
+  button.classList.remove('vapi-button--active'); // Remove active class by default
+  let iconClass = 'fas fa-microphone vapi-button__icon'; // Default idle icon
 
   switch (state) {
     case 'connecting':
-      // You could add a specific class for connecting if more style changes are needed
-      // button.classList.add('vapi-button--connecting');
-      if (iconEl) iconEl.className = 'fas fa-spinner fa-spin vapi-button__icon'; // Change to spinner icon
-      console.log("Button state: Connecting");
+      iconClass = 'fas fa-spinner fa-spin vapi-button__icon';
+      console.log("Button state update: Connecting");
       break;
     case 'active':
       button.classList.add('vapi-button--active');
-      if (iconEl) iconEl.className = 'fas fa-phone-slash vapi-button__icon'; // Change to hang-up icon
-      console.log("Button state: Active");
+      iconClass = 'fas fa-phone-slash vapi-button__icon'; 
+      console.log("Button state update: Active");
       break;
     case 'idle':
     default:
-      // Default purple gradient, pulse animation, and mic icon are handled by base .vapi-button class
-      console.log("Button state: Idle");
+      console.log("Button state update: Idle");
       break;
   }
+  if (iconEl) iconEl.className = iconClass;
 };
 
 const handleVapiCustomButtonClick = async () => {

@@ -1,22 +1,22 @@
 /* CSS Variables */
 :root {
-  --primary-color: #7A3FFD;
-  --primary-dark: #5b2bc2;
-  --primary-light: #9b66ff;
-  --secondary-color: #1e40af;
-  --accent-color: #f59e0b;
-  --success-color: #10b981;
-  --error-color: #ef4444;
+  --primary-color: #7C3AED; /* Violet */
+  --primary-dark: #6d28d9; /* Darker Violet */
+  --primary-light: #8b5cf6; /* Lighter Violet */
+  --secondary-color: #10B981; /* Emerald - was for chat, can be general accent */
+  --accent-color: #f59e0b; /* Orange - kept for now, can be replaced if not used */
+  --success-color: #10B981; /* Emerald for success messages */
+  --error-color: #EF4444; /* Red */
   
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-light: #9ca3af;
+  --text-primary: #1C1C1E; /* Dark Gray/Black */
+  --text-secondary: #6B7280; /* Gray */
+  --text-light: #9ca3af; /* Lighter Gray - adjust if needed for contrast on dark bg */
   --text-white: #ffffff;
   
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-accent: #f3f4f6;
-  --bg-dark: #1f2937;
+  --bg-primary: #F9FAFB; /* Light Gray */
+  --bg-secondary: #F3F4F6; /* Slightly darker than bg-primary, for section differentiation */
+  --bg-accent: #E5E7EB; /* Even darker gray, or can be a complementary color */
+  --bg-dark: #111827; /* Dark Gray/Black for Footer */
   
   --border-light: #e5e7eb;
   --border-medium: #d1d5db;
@@ -167,14 +167,14 @@ p {
   top: 0;
   z-index: 1000;
   backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: color-mix(in srgb, var(--bg-primary) 95%, transparent);
 }
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem var(--container-padding);
+  padding: 0.75rem var(--container-padding);
 }
 
 .nav__brand {
@@ -186,9 +186,18 @@ p {
   color: var(--text-primary);
 }
 
+.nav__logo-img {
+  height: 40px;
+  width: auto;
+}
+
 .nav__logo {
-  font-size: 2rem;
-  color: var(--primary-color);
+  /* display: none; */
+}
+
+.nav__title {
+  /* The color is inherited from nav__brand which uses --text-primary */
+  /* Potentially make it slightly lighter or a different weight if needed */
 }
 
 /* Hero Section */
@@ -583,17 +592,17 @@ p {
 
 .vapi-button:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 20px 40px rgba(122, 63, 253, 0.4) !important;
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--primary-color) 40%, transparent) !important;
 }
 
 /* Active call state for VAPI Button */
 .vapi-button--active {
-  background: linear-gradient(135deg, var(--error-color) 0%, #c00000) !important; /* Red gradient */
+  background: linear-gradient(135deg, var(--error-color) 0%, color-mix(in srgb, var(--error-color) 70%, black)) !important; /* Red gradient */
   animation: none !important; /* Stop pulsing when active */
 }
 
 .vapi-button--active:hover {
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5) !important; /* Red shadow on hover */
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--error-color) 50%, transparent) !important; /* Red shadow on hover */
 }
 
 .vapi-button__content {
@@ -826,7 +835,7 @@ p {
 }
 
 .footer__link:hover {
-  color: var(--primary-color);
+  color: var(--primary-light);
 }
 
 .footer__bottom {
