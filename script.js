@@ -13,6 +13,10 @@ var vapiChatInstance = null;
 const apiKey = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
 const vapiSquadId = "f468f8d5-b6bd-44fd-b39e-358278e86404";
 
+// References to the SDK's own buttons, once found
+var sdkVoiceButtonElement = null;
+var sdkChatButtonElement = null;
+
 // Load VAPI SDK script
 (function (d, t) {
   var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
@@ -48,10 +52,10 @@ function initializeVapiInstances() {
           title: "Поговорить с Bagira AI", subtitle: "Голосовой юр. помощник",
           icon: "https://unpkg.com/lucide-static@0.321.0/icons/mic.svg"
         },
-        chat: { enabled: false } // Explicitly disable chat for this one
+        chat: { enabled: false }
       }
     });
-    console.log('VAPI Voice Instance initialized:', vapiVoiceInstance);
+    console.log('VAPI Voice Instance command issued.');
 
     if (vapiVoiceInstance && vapiVoiceInstance.on) {
       vapiVoiceInstance.on('message', (message) => handleVapiMessage(message, 'voice'));
@@ -59,7 +63,7 @@ function initializeVapiInstances() {
       vapiVoiceInstance.on('call-ended', () => updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false));
       vapiVoiceInstance.on('error', (e) => console.error('VAPI Voice Error:', e));
     } else {
-      console.warn('Voice instance or .on method not available immediately.');
+      console.warn('Voice instance or .on method not available immediately post-run.');
     }
 
   } catch (error) {
@@ -86,24 +90,71 @@ function initializeVapiInstances() {
         }
       }
     });
-    console.log('VAPI Chat Instance initialized:', vapiChatInstance);
+    console.log('VAPI Chat Instance command issued.');
 
     if (vapiChatInstance && vapiChatInstance.on) {
       vapiChatInstance.on('message', (message) => handleVapiMessage(message, 'chat'));
-      // Chat doesn't have 'call-started' or 'call-ended' but rather UI states reflected on its own button.
-      // We might need to observe the SDK's chat button if we want to sync perfectly.
       vapiChatInstance.on('error', (e) => console.error('VAPI Chat Error:', e));
     } else {
-      console.warn('Chat instance or .on method not available immediately.');
+      console.warn('Chat instance or .on method not available immediately post-run.');
     }
   } catch (error) {
     console.error('Failed to initialize VAPI Chat SDK:', error);
   }
   
-  // It's crucial to hide the SDK's buttons AFTER they have been created by the SDK.
-  // A slight delay can help ensure they are in the DOM.
-  setTimeout(hideOriginalVapiButtons, 500); // Increased delay
-  setTimeout(hideOriginalVapiButtons, 1500); // And another try
+  // After attempting to run both instances, wait a bit for SDK to render its buttons, then find and hide them.
+  console.log("Scheduling search for SDK buttons in 2 seconds...");
+  setTimeout(findAndStoreSdkButtons, 2000); // Give SDK 2 seconds to render
+}
+
+function findAndStoreSdkButtons() {
+  console.log("Attempting to find and store SDK buttons...");
+
+  // Find Voice SDK button
+  const voiceSelector = '.vapi-btn[data-position="bottom-right"]';
+  sdkVoiceButtonElement = document.querySelector(voiceSelector);
+  if (sdkVoiceButtonElement) {
+    console.log("Found SDK Voice Button:", sdkVoiceButtonElement);
+    hideSpecificSdkButton(sdkVoiceButtonElement, "Voice");
+  } else {
+    console.warn(`SDK Voice Button NOT FOUND using selector: ${voiceSelector}. It might have a different structure or was not rendered.`);
+    // Try a more generic selector as a fallback for voice, assuming it might be the first .vapi-btn
+    const genericVoiceAttempt = document.querySelectorAll('.vapi-btn');
+    if (genericVoiceAttempt.length > 0 && genericVoiceAttempt[0].dataset.position !== "bottom-left") { // ensure it's not the chat one
+        sdkVoiceButtonElement = genericVoiceAttempt[0];
+        console.log("Fallback: Found potential SDK Voice Button (first .vapi-btn):", sdkVoiceButtonElement);
+        hideSpecificSdkButton(sdkVoiceButtonElement, "Voice (Fallback)");
+    } else {
+         console.warn("Fallback for SDK Voice Button also failed.");
+    }
+  }
+
+  // Find Chat SDK button
+  const chatSelector = '.vapi-btn[data-position="bottom-left"]';
+  sdkChatButtonElement = document.querySelector(chatSelector);
+  if (sdkChatButtonElement) {
+    console.log("Found SDK Chat Button:", sdkChatButtonElement);
+    hideSpecificSdkButton(sdkChatButtonElement, "Chat");
+  } else {
+    console.warn(`SDK Chat Button NOT FOUND using selector: ${chatSelector}.`);
+     // Try a more generic selector as a fallback for chat, assuming it might be the second .vapi-btn or one with chat-like properties
+    const genericChatAttempt = Array.from(document.querySelectorAll('.vapi-btn'));
+    const potentialChatButton = genericChatAttempt.find(btn => btn !== sdkVoiceButtonElement); // find one that isn't the stored voice button
+    if (potentialChatButton) {
+        sdkChatButtonElement = potentialChatButton;
+        console.log("Fallback: Found potential SDK Chat Button (a .vapi-btn different from voice):", sdkChatButtonElement);
+        hideSpecificSdkButton(sdkChatButtonElement, "Chat (Fallback)");
+    } else {
+        console.warn("Fallback for SDK Chat Button also failed.");
+    }
+  }
+}
+
+function hideSpecificSdkButton(element, type) {
+  if (element) {
+    console.log(`Hiding SDK ${type} Button:`, element);
+    element.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; z-index: -1 !important;';
+  }
 }
 
 function handleVapiMessage(message, type) {
@@ -128,7 +179,7 @@ const updateVapiButton = (title, subtitle, isChat = false) => {
   const buttonId = isChat ? 'customChatButton' : 'customVapiButton';
   const button = document.getElementById(buttonId);
   if (!button) {
-    console.warn(`Custom button ${buttonId} not found for updating text.`);
+    // console.warn(`Custom button ${buttonId} not found for updating text.`); // This can be noisy
     return;
   }
   const titleEl = button.querySelector(isChat ? '.vapi-chat-button__title' : '.vapi-button__title');
@@ -137,12 +188,12 @@ const updateVapiButton = (title, subtitle, isChat = false) => {
   if (titleEl) {
     titleEl.textContent = title;
     titleEl.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-  } else { console.warn(`Title element not found in ${buttonId}`); }
+  } else { /* console.warn(`Title element not found in ${buttonId}`); */ }
   if (subtitleEl) {
     subtitleEl.textContent = subtitle;
     subtitleEl.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-  } else { console.warn(`Subtitle element not found in ${buttonId}`); }
-  console.log(`Updated ${buttonId} text to: T:"${title}", S:"${subtitle}"`);
+  } else { /* console.warn(`Subtitle element not found in ${buttonId}`); */ }
+  // console.log(`Updated ${buttonId} text to: T:"${title}", S:"${subtitle}"`); // Can be noisy
 };
 
 const handleVapiCustomButtonClick = async (isChat = false) => {
@@ -155,83 +206,47 @@ const handleVapiCustomButtonClick = async (isChat = false) => {
     return;
   }
 
-  const instance = isChat ? vapiChatInstance : vapiVoiceInstance;
-  if (!instance) {
-    console.error(`VAPI ${type} instance is not available. Attempting to re-initialize.`);
-    // Potentially try to re-initialize the specific instance or both.
-    // initializeVapiInstances(); // This might be too broad, or create duplicates if not careful.
-    updateVapiButton('Ошибка инст.', 'Обновите стр.', isChat);
-    return;
-  }
+  const sdkButtonToClick = isChat ? sdkChatButtonElement : sdkVoiceButtonElement;
 
-  // The Vapi SDK's .run() method creates its own button. We need to find and click THAT button.
-  // The SDK buttons are usually <div class="vapi-btn" ... data-position="bottom-left"> or similar.
-  const sdkButtonSelector = `.vapi-btn[data-position="${isChat ? 'bottom-left' : 'bottom-right'}"]`;
-  const sdkButton = document.querySelector(sdkButtonSelector);
-
-  if (sdkButton) {
-    console.log(`Found SDK's own ${type} button, attempting to click it:`, sdkButton);
-    sdkButton.click(); 
-    // Text update for custom button should ideally reflect SDK's button state changes via event listeners.
+  if (sdkButtonToClick) {
+    console.log(`Attempting to click stored SDK ${type} button:`, sdkButtonToClick);
+    sdkButtonToClick.click(); 
     updateVapiButton(isChat ? 'Открытие чата...' : 'Соединение...', 
                      isChat ? 'Загрузка интерфейса' : 'Подготовка звонка', 
                      isChat);
   } else {
-    console.error(`Could not find the SDK's own ${type} button using selector: ${sdkButtonSelector}. The SDK might not have created its button for this instance, or it's not in the DOM yet.`);
-    updateVapiButton('Ошибка SDK Кнопки', 'Попробуйте позже', isChat);
-    // As a fallback, sometimes the instance itself can be directly manipulated, though less common with script tag version.
-    // if (isChat && typeof instance.show === 'function') instance.show(); 
-    // else if (!isChat && typeof instance.start === 'function') instance.start();
+    console.error(`Stored SDK ${type} button reference is MISSING. It was not found after initialization, or an error occurred. Check earlier logs.`);
+    updateVapiButton('Ошибка SDK Кнопки', 'Не найдена', isChat);
   }
-};
-
-// Function to hide original VAPI buttons created by the SDK
-const hideOriginalVapiButtons = () => {
-  console.log("Attempting to hide original VAPI SDK buttons...");
-  const sdkButtons = document.querySelectorAll('.vapi-btn, .vapi-widget'); // Target specific classes VAPI uses
-  sdkButtons.forEach((btn, index) => {
-    // Avoid hiding our custom buttons if they somehow match these general selectors
-    if (btn.id === 'customVapiButton' || btn.id === 'customChatButton' || btn.closest('#customVapiButton') || btn.closest('#customChatButton')) {
-      return;
-    }
-    console.log(`Hiding SDK button ${index}:`, btn);
-    btn.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; z-index: -1 !important;';
-  });
-  console.log(`Found and processed ${sdkButtons.length} SDK buttons for hiding.`);
 };
 
 // DOMContentLoaded - Main setup
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, initializing Bagira AI UI interactions...');
   
-  // Set current year
   const yearEl = document.getElementById('currentYear');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  // Custom Voice Button Event
   const customVoiceBtn = document.getElementById('customVapiButton');
   if (customVoiceBtn) {
     customVoiceBtn.addEventListener('click', () => handleVapiCustomButtonClick(false));
     console.log('Custom Voice button event listener attached');
-    setTimeout(() => updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false), 200); // Initial text
+    setTimeout(() => updateVapiButton('Поговорить с Bagira AI', 'Голосовой помощник', false), 200);
   } else { console.error('Custom Voice Button (customVapiButton) not found!');}
   
-  // Custom Chat Button Event
   const customChatBtn = document.getElementById('customChatButton');
   if (customChatBtn) {
     customChatBtn.addEventListener('click', () => handleVapiCustomButtonClick(true));
     console.log('Custom Chat button event listener attached');
-    setTimeout(() => updateVapiButton('Написать Bagira AI', 'Текстовый чат', true), 200); // Initial text
+    setTimeout(() => updateVapiButton('Написать Bagira AI', 'Текстовый чат', true), 200);
   } else { console.error('Custom Chat Button (customChatButton) not found!'); }
   
-  // Modal Event Listeners, Form Handlers, etc. (should be unchanged from previous working version)
-  setupModalEvents(); // Assuming this function is defined elsewhere from previous steps
+  setupModalEvents(); 
   const demoForm = document.getElementById('demoForm');
   if (demoForm) demoForm.addEventListener('submit', handleDemoForm);
   const vapiBookingForm = document.getElementById('vapiBookingForm');
   if (vapiBookingForm) vapiBookingForm.addEventListener('submit', handleVapiBookingForm);
 
-  // Smooth scrolling (unchanged)
   const smoothScrollLinks = document.querySelectorAll('a[href^="#"]');
   smoothScrollLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -247,11 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Bagira AI UI initialization complete.');
 });
 
-// These functions setupModalEvents, handleDemoForm, handleVapiBookingForm, showVapiBookingModal, openModal, closeModal
-// are assumed to be defined as they were in previous versions.
-// For brevity, I am not redefining them here but they must exist in the final script.js
-
-// Placeholder for setupModalEvents and other utility functions if not fully shown:
+// Utility functions (assumed to be defined correctly from previous steps)
 const setupModalEvents = () => {
     const demoButtons = ['navDemoBtn', 'heroMainCTA', 'finalCTA'];
     demoButtons.forEach(id => {
@@ -268,9 +279,24 @@ const setupModalEvents = () => {
 const openModal = (modalId) => { const modal = document.getElementById(modalId); if (modal) { modal.classList.add('active'); document.body.style.overflow = 'hidden'; } }; 
 const closeModal = (modalId) => { const modal = document.getElementById(modalId); if (modal) { modal.classList.remove('active'); document.body.style.overflow = ''; } };
 const showVapiBookingModal = () => { openModal('vapiBookingModal'); };
-const handleDemoForm = (event) => { /* ... existing logic ... */ event.preventDefault(); console.log("Demo form submitted"); };
-const handleVapiBookingForm = (event) => { /* ... existing logic ... */ event.preventDefault(); console.log("VAPI booking form submitted"); };
-
+const handleDemoForm = (event) => { event.preventDefault(); console.log("Demo form submitted"); 
+  const form = event.target; const messageEl = document.getElementById('demoMessage');
+  messageEl.textContent = 'Отправляем заявку...'; messageEl.className = 'form__message'; messageEl.style.display = 'block';
+  setTimeout(() => { messageEl.textContent = 'Спасибо! Мы свяжемся с вами в течение часа для демонстрации.'; messageEl.className = 'form__message success';
+  setTimeout(() => { form.reset(); closeModal('demoModal'); messageEl.style.display = 'none';}, 3000);}, 1500);};
+const handleVapiBookingForm = (event) => { event.preventDefault(); console.log("VAPI booking form submitted");
+  const form = event.target; const phone = document.getElementById('vapiPhone').value; const email = document.getElementById('vapiEmail').value;
+  const submitButton = form.querySelector('button[type="submit"]'); const originalButtonText = submitButton.textContent;
+  if (!phone || !email) { alert('Пожалуйста, заполните все поля'); return; }
+  submitButton.disabled = true; submitButton.textContent = 'Отправляем...';
+  fetch("https://primary-production-3672.up.railway.app/webhook/bagira-submit", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, email })
+  }).then(response => {
+    alert(response.ok ? "Спасибо! Мы скоро направим информацию по указанному номеру телефона или почте" : "Ошибка отправки. ❌ Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.");
+    closeModal('vapiBookingModal'); form.reset();
+  }).catch(error => {
+    console.error("Ошибка отправки формы Bagira AI:", error); alert("Что-то пошло не так. ❌\n" + (error.message || error)); closeModal('vapiBookingModal');
+  }).finally(() => { submitButton.disabled = false; submitButton.textContent = originalButtonText; });};
 
 // No longer using setInterval for monitorVapiButtonStates or MutationObserver for now to simplify and rely on SDK events.
 // If SDK events are insufficient, these can be re-added.
