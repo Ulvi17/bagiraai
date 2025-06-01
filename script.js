@@ -385,6 +385,7 @@ const handleVapiBookingForm = (event) => { event.preventDefault(); console.log("
 // VAPI Text Chat Functionality using Chat API
 const CHAT_API_KEY = "58f89212-0e94-4123-8f9e-3bc0dde56fe0";
 const CHAT_ASSISTANT_ID = "f60d3d06-8dd2-4e0e-b0e5-ed28384203a2";
+const FALLBACK_ASSISTANT_ID = "f468f8d5-b6bd-44fd-b39e-358278e86404"; // Fallback to squad ID
 let previousChatId = null;
 
 // Chat modal elements
@@ -477,66 +478,129 @@ async function sendChatMessage() {
   // Show typing indicator
   showTypingIndicator();
   
-  const payload = {
-    assistantId: CHAT_ASSISTANT_ID,
-    input: message,
-    ...(previousChatId && { previousChatId })
-  };
+  // Try sending message with primary assistant ID, then fallback
+  let success = false;
+  let finalError = null;
   
-  try {
-    console.log('Sending message to VAPI Chat API:', message);
+  for (const assistantId of [CHAT_ASSISTANT_ID, FALLBACK_ASSISTANT_ID]) {
+    const payload = {
+      assistantId: assistantId,
+      input: message,
+      ...(previousChatId && { previousChatId })
+    };
     
-    const response = await fetch("https://api.vapi.ai/chat", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${CHAT_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    try {
+      console.log(`Trying assistant ID: ${assistantId}`);
+      console.log('Payload:', payload);
+      
+      const response = await fetch("https://api.vapi.ai/chat", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${CHAT_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`API Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('VAPI Chat API response:', data);
+      
+      // Store chat ID for continuity
+      if (data.id) {
+        previousChatId = data.id;
+      }
+      
+      // Remove typing indicator
+      removeTypingIndicator();
+      
+      // Get assistant response - try multiple possible response formats
+      let reply = '';
+      if (data.output && Array.isArray(data.output) && data.output.length > 0) {
+        reply = data.output[0].content || data.output[0].message || '';
+      } else if (data.message) {
+        reply = data.message;
+      } else if (data.response) {
+        reply = data.response;
+      } else if (data.text) {
+        reply = data.text;
+      } else {
+        console.warn('Unexpected response format:', data);
+        reply = "Получен ответ, но в неожиданном формате. Попробуйте переформулировать вопрос.";
+      }
+      
+      if (!reply) {
+        reply = "Извините, я не смог сформулировать ответ. Попробуйте задать вопрос по-другому.";
+      }
+      
+      appendChatMessage('assistant', reply);
+      
+      // Check if response indicates booking/contact request
+      const lowerReply = reply.toLowerCase();
+      const bookingTriggers = ['телефон', 'номер', 'контакт', 'email', 'почт', 'phone', 'запись', 'консультация'];
+      
+      if (bookingTriggers.some(trigger => lowerReply.includes(trigger))) {
+        console.log('Detected booking request in chat, showing booking modal');
+        setTimeout(() => {
+          showVapiBookingModal();
+          closeModal('textChatModal');
+        }, 1000);
+      }
+      
+      success = true;
+      break; // Success, exit the loop
+      
+    } catch (error) {
+      console.error(`Error with assistant ID ${assistantId}:`, error);
+      finalError = error;
+      
+      // If this is the 404 error (assistant not found), try the next assistant ID
+      if (error.message.includes('404') && assistantId === CHAT_ASSISTANT_ID) {
+        console.log('Primary assistant not found, trying fallback...');
+        continue;
+      } else {
+        // For other errors, don't retry
+        break;
+      }
     }
-    
-    const data = await response.json();
-    console.log('VAPI Chat API response:', data);
-    
-    // Store chat ID for continuity
-    if (data.id) {
-      previousChatId = data.id;
-    }
-    
-    // Remove typing indicator
-    removeTypingIndicator();
-    
-    // Get assistant response
-    const reply = data.output?.[0]?.content || data.message || "Извините, я не смог обработать ваш запрос.";
-    appendChatMessage('assistant', reply);
-    
-    // Check if response indicates booking/contact request
-    const lowerReply = reply.toLowerCase();
-    const bookingTriggers = ['телефон', 'номер', 'контакт', 'email', 'почт', 'phone', 'запись', 'консультация'];
-    
-    if (bookingTriggers.some(trigger => lowerReply.includes(trigger))) {
-      console.log('Detected booking request in chat, showing booking modal');
-      setTimeout(() => {
-        showVapiBookingModal();
-        closeModal('textChatModal');
-      }, 1000);
-    }
-    
-  } catch (error) {
-    console.error('Error sending chat message:', error);
-    removeTypingIndicator();
-    appendChatMessage('assistant', `⚠️ Ошибка: ${error.message}. Попробуйте еще раз или используйте голосовой помощник.`);
-  } finally {
-    // Re-enable input and button
-    chatInputField.disabled = false;
-    sendChatButton.disabled = false;
-    sendChatButton.innerHTML = originalButtonText;
-    chatInputField.focus();
   }
+  
+  // If none of the attempts succeeded, show error
+  if (!success && finalError) {
+    removeTypingIndicator();
+    
+    let errorMessage = '';
+    if (finalError.message.includes('401')) {
+      errorMessage = '⚠️ Ошибка авторизации. Проверьте настройки API.';
+    } else if (finalError.message.includes('403')) {
+      errorMessage = '⚠️ Доступ запрещен. Проверьте права доступа.';
+    } else if (finalError.message.includes('404')) {
+      errorMessage = '⚠️ Ассистент не найден. Попробуйте использовать голосовой помощник.';
+    } else if (finalError.message.includes('429')) {
+      errorMessage = '⚠️ Слишком много запросов. Попробуйте через несколько секунд.';
+    } else if (finalError.message.includes('500')) {
+      errorMessage = '⚠️ Ошибка сервера. Попробуйте позже или используйте голосовой помощник.';
+    } else if (finalError.name === 'TypeError' && finalError.message.includes('fetch')) {
+      errorMessage = '⚠️ Ошибка соединения. Проверьте подключение к интернету.';
+    } else {
+      errorMessage = `⚠️ Ошибка: ${finalError.message}. Попробуйте еще раз или используйте голосовой помощник.`;
+    }
+    
+    appendChatMessage('assistant', errorMessage);
+  }
+  
+  // Re-enable input and button
+  chatInputField.disabled = false;
+  sendChatButton.disabled = false;
+  sendChatButton.innerHTML = originalButtonText;
+  chatInputField.focus();
 }
 
 // Handle custom chat button click to open chat modal
