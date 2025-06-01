@@ -376,6 +376,15 @@ const handleVapiChatButtonClick = () => {
 const CHAT_API_KEY = 'cc358c78-cc72-4f79-871b-a6e5085990bc';
 const CHAT_ASSISTANT_ID = '183660fe-2888-43c5-91c3-ef29e003035c';
 
+// Generate a unique session ID for conversation context
+// Store in localStorage to maintain context across page refreshes
+let sessionId = localStorage.getItem('bagira_session_id');
+if (!sessionId) {
+  sessionId = 'bagira_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('bagira_session_id', sessionId);
+}
+console.log('Using sessionId for conversation context:', sessionId);
+
 let lastChatId = null;
 let isChatOpen = false;
 
@@ -639,6 +648,8 @@ async function sendChatMessage(customMessage = null) {
   
   if (!message) return;
   
+  console.log('Sending message with sessionId:', sessionId, 'lastChatId:', lastChatId);
+  
   // Clear input and disable button
   if (input) input.value = '';
   if (sendButton) sendButton.disabled = true;
@@ -670,7 +681,8 @@ async function sendChatMessage(customMessage = null) {
   try {
     const body = {
       assistantId: CHAT_ASSISTANT_ID,
-      input: message
+      input: message,
+      sessionId: sessionId  // Add sessionId to maintain conversation context
     };
     
     if (lastChatId) {
@@ -688,6 +700,8 @@ async function sendChatMessage(customMessage = null) {
     
     const data = await response.json();
     lastChatId = data.id;
+    
+    console.log('Received response with new chatId:', data.id, 'maintaining session:', sessionId);
     
     // Remove typing indicator
     typingIndicator.remove();
@@ -726,8 +740,30 @@ async function sendChatMessage(customMessage = null) {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
+// Reset conversation context (useful for starting fresh)
+function resetConversation() {
+  lastChatId = null;
+  // Generate new session ID
+  sessionId = 'bagira_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('bagira_session_id', sessionId);
+  console.log('Conversation reset with new sessionId:', sessionId);
+  
+  // Clear chat messages except welcome message
+  const messagesContainer = document.getElementById('chat-messages');
+  if (messagesContainer) {
+    messagesContainer.innerHTML = `
+      <div class="chat-message bot-message">
+        <div class="message-content">
+          🤖 Здравствуйте! Я Bagira AI. Чем могу помочь вам сегодня?
+        </div>
+      </div>
+    `;
+  }
+}
+
 // Make functions globally available
 window.openBagiraChat = openBagiraChat;
 window.closeBagiraChat = closeBagiraChat;
 window.handleChatKeyPress = handleChatKeyPress;
-window.sendChatMessage = sendChatMessage; 
+window.sendChatMessage = sendChatMessage;
+window.resetConversation = resetConversation; 
